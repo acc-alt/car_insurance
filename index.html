@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herhsin | 科技座艙保險管理系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00f2ff;
+            --neon-green: #39ff14;
+            --deep-black: #050507;
+            --glass-card-bg: rgba(10, 10, 15, 0.9);
+        }
+
+        body {
+            background-color: var(--deep-black);
+            color: #f0f0f0;
+            font-family: 'Noto Sans TC', sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 50% -20%, rgba(0, 242, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 0% 100%, rgba(0, 242, 255, 0.05) 0%, transparent 30%);
+        }
+
+        .tech-font { font-family: 'Orbitron', sans-serif; }
+
+        .highway-lines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1; opacity: 0.2; pointer-events: none;
+        }
+        .line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+            height: 1px; width: 300px;
+            animation: flow 6s infinite linear;
+        }
+        @keyframes flow {
+            from { transform: translateX(-100vw) translateY(100vh) rotate(-45deg); }
+            to { transform: translateX(100vw) translateY(-100vh) rotate(-45deg); }
+        }
+
+        .glass-panel {
+            background: var(--glass-card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 242, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .nav-btn.active {
+            background: rgba(0, 242, 255, 0.1);
+            border-left: 4px solid var(--neon-blue);
+            color: var(--neon-blue);
+        }
+
+        .hud-border { position: relative; }
+        .hud-border::before {
+            content: ''; position: absolute; top: -1px; left: -1px; width: 10px; height: 10px;
+            border-top: 2px solid var(--neon-blue); border-left: 2px solid var(--neon-blue);
+        }
+        .hud-border::after {
+            content: ''; position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px;
+            border-bottom: 2px solid var(--neon-blue); border-right: 2px solid var(--neon-blue);
+        }
+
+        .page-content { display: none; }
+        .page-content.active { display: block; animation: fadeIn 0.5s ease-out; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, rgba(0,242,255,0.2), rgba(0,242,255,0.05));
+            border: 1px solid rgba(0,242,255,0.3);
+            transition: 0.3s;
+        }
+        .btn-action:hover {
+            background: var(--neon-blue);
+            color: black;
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+        .modal.active { display: flex; }
+
+        .plate-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .plate-card:hover {
+            border-color: var(--neon-blue);
+            background: rgba(0, 242, 255, 0.05);
+            transform: scale(1.02);
+        }
+
+        .status-tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .status-ok { background: rgba(57, 255, 20, 0.1); color: var(--neon-green); border: 1px solid var(--neon-green); }
+        .status-warning { background: rgba(255, 215, 0, 0.1); color: gold; border: 1px solid gold; }
+        .status-none { background: rgba(255, 0, 0, 0.1); color: #ff4444; border: 1px solid #ff4444; }
+
+        .neon-guardian {
+            color: var(--neon-green);
+            text-shadow: 0 0 8px var(--neon-green), 0 0 15px rgba(57, 255, 20, 0.5);
+            letter-spacing: 4px;
+            position: relative;
+            animation: neon-pulse 2s infinite ease-in-out;
+            background: rgba(57, 255, 20, 0.1);
+            padding: 4px 12px;
+            border: 1px solid rgba(57, 255, 20, 0.3);
+        }
+
+        input[type="date"] {
+            color-scheme: dark;
+            cursor: pointer;
+            position: relative;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0; color: transparent; cursor: pointer; height: auto;
+            left: 0; position: absolute; right: 0; top: 0; width: auto;
+        }
+
+        /* 管理權限控制元件 */
+        .admin-only { display: none !important; }
+        body.is-admin .admin-only { display: block !important; }
+        body.is-admin .admin-only-flex { display: flex !important; }
+        body.is-admin .admin-hidden { display: none !important; }
+    </style>
+</head>
+<body class="flex min-h-screen">
+    <script>
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxP1zoYsx7oS-yUJsBXYv2HweS4YTWU8K2i3_S8NXYixv-tMbBp7Ry_XRpqcbMsml6gTw/exec"; 
+        const ADMIN_PASSWORD = "admin888"; // 預設管理員密碼
+    </script>
+
+    <div class="highway-lines">
+        <div class="line" style="top:30%; animation-delay: 0s;"></div>
+        <div class="line" style="top:60%; animation-delay: 2s;"></div>
+    </div>
+
+    <!-- 左側導航欄 -->
+    <aside class="w-20 md:w-64 glass-panel border-r border-gray-800 flex flex-col z-10 shrink-0">
+        <div class="p-6 flex items-center gap-3">
+            <div class="w-8 h-8 bg-cyan-500 shadow-[0_0_10px_#00f2ff] flex items-center justify-center rotate-45">
+                <span class="text-black font-black -rotate-45 tech-font text-xs">H</span>
+            </div>
+            <h1 class="hidden md:block tech-font font-black text-xl tracking-tighter uppercase">HER<span class="text-cyan-400">HSIN</span></h1>
+        </div>
+
+        <nav class="flex-1 mt-4 overflow-y-auto">
+            <button onclick="showPage('dashboard')" class="nav-btn active w-full p-4 flex items-start gap-4 text-sm font-medium hover:bg-white/5 transition">
+                <svg class="w-5 h-5 shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+                <div class="hidden md:flex flex-col items-start leading-tight">
+                    <span>車輛總覽</span>
+                    <span class="text-[10px] tech-font opacity-70 mt-1">FLEET OVERVIEW</span>
+                </div>
+            </button>
+            <button onclick="showPage('plans')" class="nav-btn w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                <div class="hidden md:flex flex-col items-start leading-tight">
+                    <span>保單管理</span>
+                    <span class="text-[10px] tech-font opacity-70 mt-1">POLICY MANAGEMENT</span>
+                </div>
+            </button>
+        </nav>
+
+        <!-- 管理員登入區域 -->
+        <div class="p-4 border-t border-white/5">
+            <div id="admin-status" class="admin-hidden">
+                <button onclick="toggleModal('login-modal', true)" class="w-full flex items-center gap-3 p-3 text-xs text-gray-400 hover:text-cyan-400 hover:bg-white/5 transition rounded border border-transparent hover:border-cyan-900">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                    <span class="hidden md:inline">管理員登入</span>
+                </button>
+            </div>
+            <div id="admin-logged-in" class="admin-only">
+                <div class="flex items-center justify-between p-2 bg-cyan-500/10 rounded border border-cyan-500/30">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-cyan-500 font-bold tech-font">ADMIN</span>
+                        <span class="text-[9px] text-cyan-500/70">已授權模式</span>
+                    </div>
+                    <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div id="page-title" class="hud-border p-2 px-4">
+                <div class="flex flex-col">
+                    <h2 class="text-lg font-bold tracking-widest leading-none">車輛總覽</h2>
+                    <span class="text-[10px] tech-font text-cyan-500 tracking-tighter mt-1">SYSTEM MONITORING</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleModal('add-vehicle-modal', true)" class="admin-only btn-action px-4 py-2 text-xs font-bold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                    註冊新車輛
+                </button>
+                <div class="flex items-center bg-black/40 border border-white/5 overflow-hidden">
+                    <div class="neon-guardian text-[10px] font-black tech-font italic border-r border-white/10">極速守護</div>
+                    <div id="current-time" class="tech-font text-xs text-cyan-500 px-4 py-2">12:00:00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 內容區域維持原樣，但權限由 CSS 控制 -->
+        <div id="page-dashboard" class="page-content active space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-panel p-6 hud-border">
+                    <p class="text-[10px] text-gray-400 mb-1">車輛總數</p>
+                    <h3 id="stat-total" class="text-4xl font-black tech-font text-white">00</h3>
+                    <div class="mt-4 h-1 bg-white/5"><div id="progress-total" class="h-full bg-cyan-500" style="width: 0%"></div></div>
+                </div>
+                <div class="glass-panel p-6 hud-border">
+                    <p class="text-[10px] text-yellow-500 mb-1">即將到期 (30天內)</p>
+                    <h3 id="stat-warning" class="text-4xl font-black tech-font text-yellow-500">00</h3>
+                </div>
+                <div class="glass-panel p-6 hud-border">
+                    <p class="text-[10px] text-red-500 mb-1">缺失保單/已過期</p>
+                    <h3 id="stat-missing" class="text-4xl font-black tech-font text-red-500">00</h3>
+                </div>
+            </div>
+
+            <div class="glass-panel overflow-hidden hud-border">
+                <div class="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
+                    <h4 class="text-xs font-bold tracking-widest">全艦隊保險狀態監測</h4>
+                    <span id="sync-status" class="text-[9px] text-gray-500 italic">唯讀閱覽模式</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-[10px] text-gray-500 border-b border-white/5 bg-black/20">
+                            <tr>
+                                <th class="p-4">車牌號碼</th>
+                                <th class="p-4">車型資訊</th>
+                                <th class="p-4">保險公司</th>
+                                <th class="p-4">保險狀態</th>
+                                <th class="p-4">起始日期</th>
+                                <th class="p-4">到期日期</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-fleet-list" class="divide-y divide-white/5"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-plans" class="page-content space-y-6">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xs font-bold text-cyan-500">保單文件庫</h3>
+                <span class="text-[10px] text-gray-500 uppercase">點擊車牌查看詳細保單</span>
+            </div>
+            <div id="plate-grid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
+        </div>
+    </main>
+
+    <!-- 登入視窗 -->
+    <div id="login-modal" class="modal">
+        <div class="glass-panel w-full max-w-xs p-8 hud-border m-4">
+            <div class="text-center mb-6">
+                <h3 class="text-lg font-bold text-cyan-400 tech-font">AUTH REQUIRED</h3>
+                <p class="text-[10px] text-gray-500">請輸入管理員金鑰以開啟編輯功能</p>
+            </div>
+            <div class="space-y-4">
+                <input type="password" id="login-pwd" placeholder="輸入密碼..." class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white text-center">
+                <div class="flex gap-2">
+                    <button onclick="toggleModal('login-modal', false)" class="flex-1 border border-white/10 py-2 text-xs text-gray-500 hover:text-white transition">取消</button>
+                    <button onclick="handleLogin()" class="flex-1 btn-action py-2 text-xs font-bold text-black uppercase">登入</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 視窗：註冊新車輛 (Admin Only via Class) -->
+    <div id="add-vehicle-modal" class="modal">
+        <div class="glass-panel w-full max-w-md p-8 hud-border m-4">
+            <h3 class="text-lg font-bold mb-6 text-cyan-400">註冊新資產</h3>
+            <form onsubmit="handleRegisterVehicle(event)" class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-gray-500 mb-1">車牌號碼</label>
+                        <input type="text" id="new-plate" required placeholder="如: ABC-1234" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-gray-500 mb-1">保險公司</label>
+                        <select id="new-company" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                            <option value="富邦產險">富邦產險</option>
+                            <option value="國泰產險">國泰產險</option>
+                            <option value="新光產險">新光產險</option>
+                            <option value="和泰產險">和泰產險</option>
+                            <option value="明台產險">明台產險</option>
+                            <option value="第一產險">第一產險</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">車型資訊</label>
+                    <input type="text" id="new-model" required placeholder="如: Tesla Model Y" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] text-gray-500 mb-1">起始日</label><input type="date" id="new-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                    <div><label class="block text-[10px] text-gray-500 mb-1">到期日</label><input type="date" id="new-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="toggleModal('add-vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-500">取消</button>
+                    <button type="submit" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">初始化資料</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PDF 管理視窗 -->
+    <div id="pdf-manager-modal" class="modal">
+        <div class="glass-panel w-full max-w-4xl p-6 hud-border m-4 flex flex-col md:flex-row gap-6">
+            <div class="w-full md:w-1/3 space-y-6">
+                <div>
+                    <h3 id="mgr-plate-title" class="tech-font text-2xl font-black text-cyan-400">---</h3>
+                    <p class="text-[10px] text-gray-500">雲端同步狀態：啟動中</p>
+                </div>
+                <div class="space-y-4">
+                    <!-- 管理員限定上傳 -->
+                    <div class="admin-only p-4 border border-dashed border-gray-800 rounded hover:border-cyan-500/50 transition cursor-pointer" onclick="document.getElementById('mgr-pdf-input').click()">
+                        <input type="file" id="mgr-pdf-input" class="hidden" accept=".pdf" onchange="handleFileUpload(this)">
+                        <div class="text-center">
+                            <svg class="w-8 h-8 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            <p class="text-xs">上傳 PDF 檔案至 Google Drive</p>
+                        </div>
+                    </div>
+                    <!-- 一般用戶提示 -->
+                    <div class="admin-hidden p-6 bg-white/5 border border-white/5 rounded text-center opacity-60">
+                        <svg class="w-8 h-8 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        <p class="text-[10px]">唯讀模式：如需更新保單請聯絡管理員</p>
+                    </div>
+
+                    <div id="mgr-loading" class="hidden text-center py-2">
+                        <div class="animate-spin h-5 w-5 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto"></div>
+                    </div>
+                    <a id="download-link" href="#" target="_blank" class="hidden w-full btn-action py-3 text-xs font-bold items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        在雲端硬碟中開啟
+                    </a>
+                </div>
+                <button onclick="toggleModal('pdf-manager-modal', false)" class="w-full border border-white/10 py-2 text-xs text-gray-500">關閉視窗</button>
+            </div>
+            <div class="flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] text-gray-500 uppercase">雲端閱覽器</span>
+                    <span id="preview-status" class="text-[10px] text-red-500">等待資料中</span>
+                </div>
+                <div class="pdf-preview-box flex-1 min-h-[450px] rounded border border-white/5">
+                    <iframe id="pdf-frame" class="w-full h-full hidden" frameborder="0"></iframe>
+                    <div id="preview-placeholder" class="h-full flex items-center justify-center opacity-30">
+                        <p class="text-xs">系統就緒，請上傳或選擇檔案</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isAdmin = false;
+        let fleetData = [
+            { plate: 'ABC-1234', model: 'Tesla Model 3', company: '富邦產險', start: '2025-12-01', expiry: '2026-12-01', url: null },
+            { plate: 'XYZ-9988', model: 'Toyota RAV4', company: '國泰產險', start: '2024-03-15', expiry: '2025-03-15', url: null }
+        ];
+        let currentPlate = "";
+
+        window.onload = () => {
+            renderFleet();
+            updateClock();
+            setInterval(updateClock, 1000);
+            checkAdminSession();
+        };
+
+        // 管理員邏輯
+        function handleLogin() {
+            const pwd = document.getElementById('login-pwd').value;
+            if (pwd === ADMIN_PASSWORD) {
+                isAdmin = true;
+                sessionStorage.setItem('herhsin_admin', 'true');
+                applyAdminUI();
+                toggleModal('login-modal', false);
+                document.getElementById('login-pwd').value = "";
+            } else {
+                alert("存取拒絕：金鑰錯誤");
+            }
+        }
+
+        function logout() {
+            isAdmin = false;
+            sessionStorage.removeItem('herhsin_admin');
+            applyAdminUI();
+        }
+
+        function checkAdminSession() {
+            if (sessionStorage.getItem('herhsin_admin') === 'true') {
+                isAdmin = true;
+                applyAdminUI();
+            }
+        }
+
+        function applyAdminUI() {
+            if (isAdmin) {
+                document.body.classList.add('is-admin');
+                document.getElementById('sync-status').textContent = "管理模式：全功能已解鎖";
+                document.getElementById('sync-status').classList.replace('text-gray-500', 'text-cyan-500');
+            } else {
+                document.body.classList.remove('is-admin');
+                document.getElementById('sync-status').textContent = "唯讀閱覽模式";
+                document.getElementById('sync-status').classList.replace('text-cyan-500', 'text-gray-500');
+            }
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(pageId)));
+        }
+
+        function toggleModal(id, show) {
+            document.getElementById(id).classList.toggle('active', show);
+        }
+
+        function handleRegisterVehicle(e) {
+            e.preventDefault();
+            if (!isAdmin) return alert("權限不足");
+            const plate = document.getElementById('new-plate').value.toUpperCase();
+            fleetData.push({
+                plate: plate,
+                model: document.getElementById('new-model').value,
+                company: document.getElementById('new-company').value,
+                start: document.getElementById('new-start').value || null,
+                expiry: document.getElementById('new-expiry').value || null,
+                url: null
+            });
+            renderFleet();
+            toggleModal('add-vehicle-modal', false);
+            e.target.reset();
+        }
+
+        function renderFleet() {
+            const dashboardList = document.getElementById('dashboard-fleet-list');
+            const plateGrid = document.getElementById('plate-grid');
+            dashboardList.innerHTML = '';
+            plateGrid.innerHTML = '';
+            let warningCount = 0, missingCount = 0;
+            const now = new Date();
+            const thirtyDaysLater = new Date();
+            thirtyDaysLater.setDate(now.getDate() + 30);
+
+            fleetData.forEach(vehicle => {
+                let statusClass = 'status-ok', statusText = '安全';
+                if (!vehicle.expiry) { statusClass = 'status-none'; statusText = '無資料'; missingCount++; }
+                else {
+                    const exp = new Date(vehicle.expiry);
+                    if (exp < now) { statusClass = 'status-none'; statusText = '已過期'; missingCount++; }
+                    else if (exp < thirtyDaysLater) { statusClass = 'status-warning'; statusText = '即將到期'; warningCount++; }
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 transition border-b border-white/5";
+                tr.innerHTML = `
+                    <td class="p-4 tech-font font-bold text-cyan-400">${vehicle.plate}</td>
+                    <td class="p-4 text-gray-400 text-xs">${vehicle.model}</td>
+                    <td class="p-4 text-xs font-medium text-white/80">${vehicle.company}</td>
+                    <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
+                    <td class="p-4 text-xs opacity-70">${vehicle.start || '---'}</td>
+                    <td class="p-4 tech-font text-xs">${vehicle.expiry || '---'}</td>
+                `;
+                dashboardList.appendChild(tr);
+
+                const card = document.createElement('div');
+                card.onclick = () => openPdfManager(vehicle.plate);
+                card.className = "glass-panel p-4 plate-card hud-border text-center";
+                card.innerHTML = `<p class="tech-font text-lg font-bold">${vehicle.plate}</p><p class="text-[10px] text-gray-500 mt-1 uppercase">${vehicle.company}</p>`;
+                plateGrid.appendChild(card);
+            });
+            document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
+            document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
+            document.getElementById('stat-missing').textContent = missingCount.toString().padStart(2, '0');
+        }
+
+        function openPdfManager(plate) {
+            currentPlate = plate;
+            document.getElementById('mgr-plate-title').textContent = plate;
+            document.getElementById('pdf-frame').classList.add('hidden');
+            document.getElementById('preview-placeholder').classList.remove('hidden');
+            document.getElementById('download-link').classList.add('hidden');
+            document.getElementById('preview-status').textContent = isAdmin ? "等待操作" : "唯讀模式";
+            toggleModal('pdf-manager-modal', true);
+        }
+
+        async function handleFileUpload(input) {
+            if (!isAdmin) return alert("權限不足");
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const reader = new FileReader();
+            document.getElementById('mgr-loading').classList.remove('hidden');
+            reader.onload = async function(e) {
+                const base64 = e.target.result.split(',')[1];
+                try {
+                    const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ plate: currentPlate, fileName: file.name, base64: base64 }) });
+                    const result = await response.json();
+                    if (result.status === "success") showPreview(result.viewUrl);
+                } catch (err) { alert("上傳錯誤"); }
+                finally { document.getElementById('mgr-loading').classList.add('hidden'); }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function showPreview(url) {
+            const frame = document.getElementById('pdf-frame');
+            frame.src = url.replace("/view", "/preview");
+            frame.classList.remove('hidden');
+            document.getElementById('preview-placeholder').classList.add('hidden');
+            document.getElementById('preview-status').textContent = "雲端檔案已連線";
+            document.getElementById('download-link').href = url;
+            document.getElementById('download-link').classList.remove('hidden');
+        }
+
+        function updateClock() {
+            document.getElementById('current-time').textContent = new Date().toLocaleTimeString('zh-TW', {hour12: false});
+        }
+    </script>
+</body>
+</html>
