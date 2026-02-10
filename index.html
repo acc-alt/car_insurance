@@ -49,10 +49,20 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
 
+        .nav-btn {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
         .nav-btn.active {
-            background: rgba(0, 242, 255, 0.1);
+            background: rgba(0, 242, 255, 0.08);
             border-left: 4px solid var(--neon-blue);
             color: var(--neon-blue);
+            box-shadow: inset 10px 0 20px -10px rgba(0, 242, 255, 0.2);
+        }
+
+        .nav-btn.active svg {
+            filter: drop-shadow(0 0 5px var(--neon-blue));
         }
 
         .hud-border { position: relative; }
@@ -177,13 +187,17 @@
 
         <nav class="flex-1 mt-4 overflow-y-auto">
             <button onclick="showPage('dashboard')" class="nav-btn active w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2-2v-2z"/></svg>
+                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
                 <div class="hidden md:flex flex-col items-start leading-tight">
                     <span>車輛總覽</span>
                 </div>
             </button>
             <button onclick="showPage('plans')" class="nav-btn w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
-                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
                 <div class="hidden md:flex flex-col items-start leading-tight">
                     <span>保單管理</span>
                 </div>
@@ -200,8 +214,7 @@
             <div id="admin-logged-in" class="admin-only">
                 <div class="flex items-center justify-between p-2 bg-cyan-500/10 rounded border border-cyan-500/30">
                     <div class="flex flex-col">
-                        <span class="text-[10px] text-cyan-500 font-bold tech-font">ADMIN</span>
-                        <span class="text-[9px] text-cyan-500/70">已授權模式</span>
+                        <span class="text-[10px] text-cyan-500 font-bold">已授權模式</span>
                     </div>
                     <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -222,7 +235,6 @@
             <div id="page-title-box" class="hud-border p-2 px-4">
                 <div class="flex flex-col">
                     <h2 id="page-title-text" class="text-lg font-bold tracking-widest leading-none">車輛總覽</h2>
-                    <span class="text-[10px] tech-font text-cyan-500 tracking-tighter mt-1 uppercase">DASHBOARD OVERVIEW</span>
                 </div>
             </div>
             <div class="flex items-center gap-4">
@@ -272,7 +284,7 @@
                                 <th class="p-4">起始日期</th>
                                 <th class="p-4">到期日期</th>
                                 <th class="p-4 text-center">文件</th>
-                                <th class="p-4 admin-only-cell">操作</th>
+                                <th class="p-4 admin-only-cell text-center">刪除</th>
                             </tr>
                         </thead>
                         <tbody id="dashboard-fleet-list" class="divide-y divide-white/5"></tbody>
@@ -391,7 +403,6 @@
             if (isFetching) return;
             isFetching = true;
             hideError();
-            // 雖然 display: none，但保留邏輯一致性
             document.getElementById('sync-status').textContent = "正在連線雲端資料庫...";
             
             try {
