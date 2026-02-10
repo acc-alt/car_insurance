@@ -143,11 +143,21 @@
             display: inline-block;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #error-banner {
+            display: none;
+            background: rgba(255, 0, 0, 0.15);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+            color: #ff8888;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="flex min-h-screen">
     <script>
-        // 設定區
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMEoizEmworjcxFkeaSVE9TlFcDK_FZsTmnZAkt4cmGZII4V1uvwy_iGOa2Q2t6X4vzA/exec";
     </script>
 
@@ -166,18 +176,16 @@
         </div>
 
         <nav class="flex-1 mt-4 overflow-y-auto">
-            <button onclick="showPage('dashboard')" class="nav-btn active w-full p-4 flex items-start gap-4 text-sm font-medium hover:bg-white/5 transition">
-                <svg class="w-5 h-5 shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <button onclick="showPage('dashboard')" class="nav-btn active w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2-2v-2z"/></svg>
                 <div class="hidden md:flex flex-col items-start leading-tight">
                     <span>車輛總覽</span>
-                    <span class="text-[10px] tech-font opacity-70 mt-1">FLEET OVERVIEW</span>
                 </div>
             </button>
             <button onclick="showPage('plans')" class="nav-btn w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
                 <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <div class="hidden md:flex flex-col items-start leading-tight">
                     <span>保單管理</span>
-                    <span class="text-[10px] tech-font opacity-70 mt-1">POLICY MANAGEMENT</span>
                 </div>
             </button>
         </nav>
@@ -204,6 +212,12 @@
     </aside>
 
     <main class="flex-1 p-4 md:p-8 overflow-y-auto min-w-0">
+        <!-- 錯誤橫幅 -->
+        <div id="error-banner">
+            <strong>系統連線異常：</strong> <span id="error-message"></span>
+            <br><small>請檢查 Google Apps Script 權限與試算表 ID 是否正確。</small>
+        </div>
+
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
             <div id="page-title-box" class="hud-border p-2 px-4">
                 <div class="flex flex-col">
@@ -244,13 +258,13 @@
 
             <div class="glass-panel overflow-hidden hud-border">
                 <div class="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
-                    <h4 class="text-xs font-bold tracking-widest">全艦隊保險狀態監測</h4>
+                    <h4 class="text-xs font-bold tracking-widest">全車輛保險狀態儀表板</h4>
                     <span id="sync-status" class="text-[9px] text-gray-500 italic">正在載入數據...</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead class="text-[10px] text-gray-500 border-b border-white/5 bg-black/20">
-                            <tr>
+                            <tr id="fleet-table-header">
                                 <th class="p-4">車牌號碼</th>
                                 <th class="p-4">車型資訊</th>
                                 <th class="p-4">保險公司</th>
@@ -364,23 +378,49 @@
             checkAdminSession();
         };
 
+        function hideError() {
+            document.getElementById('error-banner').style.display = 'none';
+        }
+
+        function showError(msg) {
+            document.getElementById('error-banner').style.display = 'block';
+            document.getElementById('error-message').textContent = msg;
+        }
+
         async function fetchFleetData() {
             if (isFetching) return;
             isFetching = true;
+            hideError();
             document.getElementById('sync-status').textContent = "正在連線雲端資料庫...";
             
             try {
                 const resp = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'fetch' })
                 });
+
                 const data = await resp.json();
-                fleetData = data;
+                
+                if (data && data.status === 'error') {
+                    throw new Error(data.message || "後端處理異常");
+                }
+
+                if (Array.isArray(data)) {
+                    fleetData = data;
+                    document.getElementById('sync-status').textContent = "數據已同步 (Google Drive)";
+                } else {
+                    fleetData = [];
+                    document.getElementById('sync-status').textContent = "雲端回傳格式不正確";
+                }
+                
                 renderFleet();
-                document.getElementById('sync-status').textContent = "數據已同步 (Google Drive)";
             } catch (error) {
-                console.error("Sync error:", error);
-                document.getElementById('sync-status').textContent = "同步失敗，請確認網路連線";
+                document.getElementById('sync-status').textContent = "同步失敗";
+                showError(error.message);
+                fleetData = [];
+                renderFleet();
             } finally {
                 isFetching = false;
             }
@@ -412,6 +452,7 @@
             try {
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify(vehicle)
                 });
                 const res = await response.json();
@@ -420,13 +461,41 @@
                     toggleModal('vehicle-modal', false);
                     await fetchFleetData();
                 } else {
-                    throw new Error("Server error");
+                    throw new Error(res.message || "儲存失敗");
                 }
             } catch (err) {
-                alert("存儲失敗，請檢查網路連接");
+                alert("存儲失敗：" + err.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = '同步雲端資料庫';
+            }
+        }
+
+        async function deleteVehicle(index) {
+            if (!isAdmin) return;
+            const v = fleetData[index];
+            if (!v) return;
+
+            if (!confirm(`確定要刪除車輛 ${v.plate} 的紀錄嗎？此動作無法復原。`)) return;
+
+            try {
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        plate: v.plate,
+                        fileId: v.fileId || ""
+                    })
+                });
+                const res = await response.json();
+                if (res.status === 'success') {
+                    await fetchFleetData();
+                } else {
+                    throw new Error(res.message);
+                }
+            } catch (err) {
+                alert("刪除失敗：" + err.message);
             }
         }
 
@@ -440,9 +509,6 @@
                     updateFileUI(file.name);
                 };
                 reader.readAsDataURL(file);
-            } else if (file) {
-                alert("請上傳 PDF 格式檔案");
-                input.value = "";
             }
         }
 
@@ -469,9 +535,9 @@
             btn.innerHTML = '<span class="loader"></span> 驗證中...';
 
             try {
-                // 發送密碼到後端驗證，而不是在前端比對
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ 
                         action: 'login', 
                         password: pwd 
@@ -544,24 +610,6 @@
             toggleModal('vehicle-modal', true);
         }
 
-        function editVehicle(index) {
-            if (!isAdmin) return;
-            const v = fleetData[index];
-            document.getElementById('modal-title').textContent = "更新雲端資產";
-            document.getElementById('v-index').value = index;
-            document.getElementById('v-plate').value = v.plate;
-            document.getElementById('v-model').value = v.model;
-            document.getElementById('v-company').value = v.company;
-            document.getElementById('v-start').value = v.start || "";
-            document.getElementById('v-expiry').value = v.expiry || "";
-            document.getElementById('v-fileId').value = v.fileId || "";
-            clearFileSelection();
-            if (v.fileId) {
-                updateFileUI(v.pdfName || "已存於 Google Drive");
-            }
-            toggleModal('vehicle-modal', true);
-        }
-
         function viewPolicy(fileId) {
             if (!fileId) return alert("無檔案紀錄");
             const url = `https://drive.google.com/file/d/${fileId}/view`;
@@ -571,6 +619,8 @@
         function renderFleet() {
             const list = document.getElementById('dashboard-fleet-list');
             const grid = document.getElementById('plate-grid');
+            if (!list || !grid) return;
+
             list.innerHTML = '';
             grid.innerHTML = '';
             
@@ -579,8 +629,10 @@
             const thirtyDays = new Date();
             thirtyDays.setDate(now.getDate() + 30);
 
-            fleetData.forEach((v, i) => {
-                let statusClass = 'status-ok', statusText = '安全';
+            const dataToRender = Array.isArray(fleetData) ? fleetData : [];
+
+            dataToRender.forEach((v, i) => {
+                let statusClass = 'status-ok', statusText = '期限內';
                 if (!v.expiry) { statusClass = 'status-none'; statusText = '待補齊'; missingCount++; }
                 else {
                     const exp = new Date(v.expiry);
@@ -588,8 +640,19 @@
                     else if (exp < thirtyDays) { statusClass = 'status-warning'; statusText = '即將到期'; warningCount++; }
                 }
 
+                // 表格列渲染
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-white/5 transition border-b border-white/5";
+                
+                // 文件內容與操作內容邏輯
+                let fileCellContent = isAdmin && v.fileId 
+                    ? `<button onclick="viewPolicy('${v.fileId}')" class="text-cyan-500 hover:text-white" title="開啟雲端文件"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></button>` 
+                    : `<span class="text-gray-800/30"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>`;
+                
+                let actionCell = isAdmin 
+                    ? `<td class="p-4 admin-only-cell text-center"><button onclick="deleteVehicle(${i})" class="text-red-500 hover:text-white p-1 transition" title="刪除紀錄"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button></td>` 
+                    : '';
+
                 tr.innerHTML = `
                     <td class="p-4 tech-font font-bold text-cyan-400">${v.plate}</td>
                     <td class="p-4 text-gray-400 text-xs">${v.model}</td>
@@ -597,41 +660,44 @@
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
                     <td class="p-4 text-xs opacity-70">${v.start || '---'}</td>
                     <td class="p-4 tech-font text-xs">${v.expiry || '---'}</td>
-                    <td class="p-4 text-center">
-                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="text-cyan-500 hover:text-white" title="開啟雲端文件"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></button>` : `<span class="text-gray-800"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></span>`}
-                    </td>
-                    <td class="p-4 admin-only-cell">
-                        <button onclick="editVehicle(${i})" class="text-cyan-500 hover:text-cyan-300 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
-                    </td>
+                    <td class="p-4 text-center">${fileCellContent}</td>
+                    ${actionCell}
                 `;
                 list.appendChild(tr);
 
+                // 卡片模式渲染 (保單管理頁面)
                 const card = document.createElement('div');
                 card.className = "glass-panel p-5 plate-card hud-border flex flex-col items-center group";
+                
+                let cardButton = (isAdmin && v.fileId) 
+                    ? `<button onclick="viewPolicy('${v.fileId}')" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">預覽 Google Drive PDF</button>` 
+                    : `<div class="w-full py-2 bg-white/5 text-gray-700 text-[10px] text-center border border-white/5 uppercase">權限限制存取</div>`;
+
                 card.innerHTML = `
                     <div class="w-16 h-20 bg-gradient-to-br from-cyan-500/20 to-transparent border border-cyan-500/30 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
-                        ${v.fileId ? '<div class="absolute inset-0 bg-cyan-500/10"></div>' : ''}
-                        <svg class="w-8 h-8 ${v.fileId ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        ${(isAdmin && v.fileId) ? '<div class="absolute inset-0 bg-cyan-500/10"></div>' : ''}
+                        <svg class="w-8 h-8 ${(isAdmin && v.fileId) ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
                     <p class="tech-font text-xl font-black text-white mb-1 group-hover:text-cyan-400 transition">${v.plate}</p>
                     <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-4">${v.company}</p>
                     <div class="w-full space-y-2 mt-auto">
-                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">預覽 Google Drive PDF</button>` : `<div class="w-full py-2 bg-white/5 text-gray-700 text-[10px] text-center border border-white/5 uppercase">無文件存檔</div>`}
+                        ${cardButton}
                         <div class="flex justify-between items-center px-1"><span class="text-[9px] text-gray-600 tech-font">EXP: ${v.expiry || '---'}</span><span class="status-tag ${statusClass}" style="padding:1px 4px; font-size:8px;">${statusText}</span></div>
                     </div>
-                    ${isAdmin ? `<button onclick="editVehicle(${i})" class="mt-4 text-[9px] text-cyan-500 underline opacity-0 group-hover:opacity-100 transition">修改雲端資料</button>` : ''}
+                    ${isAdmin ? `<button onclick="deleteVehicle(${i})" class="mt-4 text-[9px] text-red-500 hover:text-white underline opacity-0 group-hover:opacity-100 transition">刪除雲端紀錄</button>` : ''}
                 `;
                 grid.appendChild(card);
             });
             
-            document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
+            document.getElementById('stat-total').textContent = dataToRender.length.toString().padStart(2, '0');
             document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
             document.getElementById('stat-missing').textContent = missingCount.toString().padStart(2, '0');
         }
 
         function updateClock() {
             const time = new Date().toLocaleTimeString('zh-TW', {hour12: false});
-            document.getElementById('current-time').textContent = time;
+            const clockEl = document.getElementById('current-time');
+            if (clockEl) clockEl.textContent = time;
         }
     </script>
 </body>
