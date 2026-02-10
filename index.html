@@ -283,7 +283,7 @@
                                 <th class="p-4">保險狀態</th>
                                 <th class="p-4">起始日期</th>
                                 <th class="p-4">到期日期</th>
-                                <th class="p-4 text-center">文件</th>
+                                <th class="p-4 text-center">編輯與檔案</th>
                                 <th class="p-4 admin-only-cell text-center">刪除</th>
                             </tr>
                         </thead>
@@ -618,7 +618,35 @@
             document.getElementById('vehicle-form').reset();
             document.getElementById('v-index').value = "";
             document.getElementById('v-fileId').value = "";
+            document.getElementById('v-plate').readOnly = false;
             clearFileSelection();
+            toggleModal('vehicle-modal', true);
+        }
+
+        // 修改為編輯功能
+        function openEditModal(index) {
+            if (!isAdmin) {
+                alert("請先登入管理員以進行編輯。");
+                return;
+            }
+            const v = fleetData[index];
+            if (!v) return;
+
+            document.getElementById('modal-title').textContent = "編輯車輛資料";
+            document.getElementById('v-index').value = index;
+            document.getElementById('v-plate').value = v.plate;
+            document.getElementById('v-plate').readOnly = true; // 鎖定車牌，因為它是 Key
+            document.getElementById('v-model').value = v.model || "";
+            document.getElementById('v-company').value = v.company || "富邦產險";
+            document.getElementById('v-start').value = v.start || "";
+            document.getElementById('v-expiry').value = v.expiry || "";
+            document.getElementById('v-fileId').value = v.fileId || "";
+            
+            clearFileSelection();
+            if (v.fileId) {
+                updateFileUI("已連結雲端檔案 (可點擊重新上傳更換)");
+            }
+            
             toggleModal('vehicle-modal', true);
         }
 
@@ -656,9 +684,12 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-white/5 transition border-b border-white/5";
                 
-                // 文件內容與操作內容邏輯
-                let fileCellContent = isAdmin && v.fileId 
-                    ? `<button onclick="viewPolicy('${v.fileId}')" class="text-cyan-500 hover:text-white" title="開啟雲端文件"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></button>` 
+                // 文件內容欄位改為編輯按鈕
+                let fileCellContent = isAdmin
+                    ? `<button onclick="openEditModal(${i})" class="text-cyan-500 hover:text-white flex items-center justify-center gap-2 mx-auto" title="編輯車輛資料">
+                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                         ${v.fileId ? '<svg class="w-4 h-4 opacity-50" fill="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>' : ''}
+                       </button>` 
                     : `<span class="text-gray-800/30"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></span>`;
                 
                 let actionCell = isAdmin 
@@ -681,14 +712,14 @@
                 const card = document.createElement('div');
                 card.className = "glass-panel p-5 plate-card hud-border flex flex-col items-center group";
                 
-                let cardButton = (isAdmin && v.fileId) 
-                    ? `<button onclick="viewPolicy('${v.fileId}')" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">預覽 Google Drive PDF</button>` 
+                let cardButton = isAdmin 
+                    ? `<button onclick="openEditModal(${i})" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">進入編輯模式</button>` 
                     : `<div class="w-full py-2 bg-white/5 text-gray-700 text-[10px] text-center border border-white/5 uppercase">權限限制存取</div>`;
 
                 card.innerHTML = `
                     <div class="w-16 h-20 bg-gradient-to-br from-cyan-500/20 to-transparent border border-cyan-500/30 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
-                        ${(isAdmin && v.fileId) ? '<div class="absolute inset-0 bg-cyan-500/10"></div>' : ''}
-                        <svg class="w-8 h-8 ${(isAdmin && v.fileId) ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        ${(v.fileId) ? '<div class="absolute inset-0 bg-cyan-500/10"></div>' : ''}
+                        <svg class="w-8 h-8 ${(v.fileId) ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
                     <p class="tech-font text-xl font-black text-white mb-1 group-hover:text-cyan-400 transition">${v.plate}</p>
                     <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-4">${v.company}</p>
