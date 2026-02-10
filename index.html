@@ -143,6 +143,7 @@
         .admin-only { display: none !important; }
         body.is-admin .admin-only { display: block !important; }
         body.is-admin .admin-only-flex { display: flex !important; }
+        body.is-admin .admin-only-cell { display: table-cell !important; }
         body.is-admin .admin-hidden { display: none !important; }
     </style>
 </head>
@@ -157,7 +158,7 @@
         <div class="line" style="top:60%; animation-delay: 2s;"></div>
     </div>
 
-    <!-- 左側導航欄 -->
+    <!-- 左側導航 -->
     <aside class="w-20 md:w-64 glass-panel border-r border-gray-800 flex flex-col z-10 shrink-0">
         <div class="p-6 flex items-center gap-3">
             <div class="w-8 h-8 bg-cyan-500 shadow-[0_0_10px_#00f2ff] flex items-center justify-center rotate-45">
@@ -225,7 +226,7 @@
             </div>
         </div>
 
-        <!-- 內容區域維持原樣，但權限由 CSS 控制 -->
+        <!-- 儀表板頁面 -->
         <div id="page-dashboard" class="page-content active space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="glass-panel p-6 hud-border">
@@ -258,6 +259,7 @@
                                 <th class="p-4">保險狀態</th>
                                 <th class="p-4">起始日期</th>
                                 <th class="p-4">到期日期</th>
+                                <th class="p-4 admin-only-cell">操作</th>
                             </tr>
                         </thead>
                         <tbody id="dashboard-fleet-list" class="divide-y divide-white/5"></tbody>
@@ -266,6 +268,7 @@
             </div>
         </div>
 
+        <!-- 保單管理頁面 -->
         <div id="page-plans" class="page-content space-y-6">
             <div class="flex justify-between items-center">
                 <h3 class="text-xs font-bold text-cyan-500">保單文件庫</h3>
@@ -292,19 +295,20 @@
         </div>
     </div>
 
-    <!-- 視窗：註冊新車輛 (Admin Only via Class) -->
-    <div id="add-vehicle-modal" class="modal">
+    <!-- 視窗：註冊新車輛 / 編輯車輛 (通用) -->
+    <div id="vehicle-modal" class="modal">
         <div class="glass-panel w-full max-w-md p-8 hud-border m-4">
-            <h3 class="text-lg font-bold mb-6 text-cyan-400">註冊新資產</h3>
-            <form onsubmit="handleRegisterVehicle(event)" class="space-y-5">
+            <h3 id="modal-title" class="text-lg font-bold mb-6 text-cyan-400">註冊新資產</h3>
+            <form onsubmit="handleVehicleSubmit(event)" class="space-y-5">
+                <input type="hidden" id="v-index">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-[10px] text-gray-500 mb-1">車牌號碼</label>
-                        <input type="text" id="new-plate" required placeholder="如: ABC-1234" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white">
+                        <input type="text" id="v-plate" required placeholder="如: ABC-1234" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white">
                     </div>
                     <div>
                         <label class="block text-[10px] text-gray-500 mb-1">保險公司</label>
-                        <select id="new-company" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                        <select id="v-company" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
                             <option value="富邦產險">富邦產險</option>
                             <option value="國泰產險">國泰產險</option>
                             <option value="新光產險">新光產險</option>
@@ -317,15 +321,15 @@
                 </div>
                 <div>
                     <label class="block text-[10px] text-gray-500 mb-1">車型資訊</label>
-                    <input type="text" id="new-model" required placeholder="如: Tesla Model Y" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                    <input type="text" id="v-model" required placeholder="如: Tesla Model Y" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-[10px] text-gray-500 mb-1">起始日</label><input type="date" id="new-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
-                    <div><label class="block text-[10px] text-gray-500 mb-1">到期日</label><input type="date" id="new-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                    <div><label class="block text-[10px] text-gray-500 mb-1">起始日</label><input type="date" id="v-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                    <div><label class="block text-[10px] text-gray-500 mb-1">到期日</label><input type="date" id="v-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleModal('add-vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-500">取消</button>
-                    <button type="submit" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">初始化資料</button>
+                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-500">取消</button>
+                    <button type="submit" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">儲存變更</button>
                 </div>
             </form>
         </div>
@@ -340,7 +344,6 @@
                     <p class="text-[10px] text-gray-500">雲端同步狀態：啟動中</p>
                 </div>
                 <div class="space-y-4">
-                    <!-- 管理員限定上傳 -->
                     <div class="admin-only p-4 border border-dashed border-gray-800 rounded hover:border-cyan-500/50 transition cursor-pointer" onclick="document.getElementById('mgr-pdf-input').click()">
                         <input type="file" id="mgr-pdf-input" class="hidden" accept=".pdf" onchange="handleFileUpload(this)">
                         <div class="text-center">
@@ -348,12 +351,10 @@
                             <p class="text-xs">上傳 PDF 檔案至 Google Drive</p>
                         </div>
                     </div>
-                    <!-- 一般用戶提示 -->
                     <div class="admin-hidden p-6 bg-white/5 border border-white/5 rounded text-center opacity-60">
                         <svg class="w-8 h-8 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                         <p class="text-[10px]">唯讀模式：如需更新保單請聯絡管理員</p>
                     </div>
-
                     <div id="mgr-loading" class="hidden text-center py-2">
                         <div class="animate-spin h-5 w-5 border-2 border-cyan-500 border-t-transparent rounded-full mx-auto"></div>
                     </div>
@@ -403,6 +404,7 @@
                 applyAdminUI();
                 toggleModal('login-modal', false);
                 document.getElementById('login-pwd').value = "";
+                renderFleet(); // 重新渲染表格以顯示操作按鈕
             } else {
                 alert("存取拒絕：金鑰錯誤");
             }
@@ -412,6 +414,7 @@
             isAdmin = false;
             sessionStorage.removeItem('herhsin_admin');
             applyAdminUI();
+            renderFleet();
         }
 
         function checkAdminSession() {
@@ -441,23 +444,66 @@
 
         function toggleModal(id, show) {
             document.getElementById(id).classList.toggle('active', show);
+            if(id === 'vehicle-modal' && show) {
+                // 預設為新增模式
+                if(!document.getElementById('v-index').value) {
+                    document.getElementById('modal-title').textContent = "註冊新資產";
+                }
+            } else if (id === 'vehicle-modal' && !show) {
+                // 清除表單
+                document.getElementById('v-index').value = "";
+                document.getElementById('v-plate').value = "";
+                document.getElementById('v-model').value = "";
+                document.getElementById('v-start').value = "";
+                document.getElementById('v-expiry').value = "";
+            }
         }
 
-        function handleRegisterVehicle(e) {
+        // 新增或修改車輛
+        function handleVehicleSubmit(e) {
             e.preventDefault();
             if (!isAdmin) return alert("權限不足");
-            const plate = document.getElementById('new-plate').value.toUpperCase();
-            fleetData.push({
-                plate: plate,
-                model: document.getElementById('new-model').value,
-                company: document.getElementById('new-company').value,
-                start: document.getElementById('new-start').value || null,
-                expiry: document.getElementById('new-expiry').value || null,
-                url: null
-            });
+            
+            const index = document.getElementById('v-index').value;
+            const vehicle = {
+                plate: document.getElementById('v-plate').value.toUpperCase(),
+                model: document.getElementById('v-model').value,
+                company: document.getElementById('v-company').value,
+                start: document.getElementById('v-start').value || null,
+                expiry: document.getElementById('v-expiry').value || null,
+                url: index !== "" ? fleetData[index].url : null
+            };
+
+            if (index === "") {
+                fleetData.push(vehicle);
+            } else {
+                fleetData[index] = vehicle;
+            }
+            
             renderFleet();
-            toggleModal('add-vehicle-modal', false);
-            e.target.reset();
+            toggleModal('vehicle-modal', false);
+        }
+
+        // 編輯按鈕觸發
+        function editVehicle(index) {
+            const v = fleetData[index];
+            document.getElementById('modal-title').textContent = "編輯車輛資產";
+            document.getElementById('v-index').value = index;
+            document.getElementById('v-plate').value = v.plate;
+            document.getElementById('v-model').value = v.model;
+            document.getElementById('v-company').value = v.company;
+            document.getElementById('v-start').value = v.start || "";
+            document.getElementById('v-expiry').value = v.expiry || "";
+            toggleModal('vehicle-modal', true);
+        }
+
+        // 刪除按鈕觸發
+        function deleteVehicle(index) {
+            if(!isAdmin) return;
+            if(confirm(`確定要永久刪除車輛 ${fleetData[index].plate} 嗎？此操作不可撤銷。`)) {
+                fleetData.splice(index, 1);
+                renderFleet();
+            }
         }
 
         function renderFleet() {
@@ -470,7 +516,7 @@
             const thirtyDaysLater = new Date();
             thirtyDaysLater.setDate(now.getDate() + 30);
 
-            fleetData.forEach(vehicle => {
+            fleetData.forEach((vehicle, index) => {
                 let statusClass = 'status-ok', statusText = '安全';
                 if (!vehicle.expiry) { statusClass = 'status-none'; statusText = '無資料'; missingCount++; }
                 else {
@@ -488,6 +534,16 @@
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
                     <td class="p-4 text-xs opacity-70">${vehicle.start || '---'}</td>
                     <td class="p-4 tech-font text-xs">${vehicle.expiry || '---'}</td>
+                    <td class="p-4 admin-only-cell">
+                        <div class="flex gap-2">
+                            <button onclick="editVehicle(${index})" class="text-cyan-500 hover:text-cyan-300 p-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            </button>
+                            <button onclick="deleteVehicle(${index})" class="text-red-500 hover:text-red-300 p-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </td>
                 `;
                 dashboardList.appendChild(tr);
 
@@ -497,6 +553,7 @@
                 card.innerHTML = `<p class="tech-font text-lg font-bold">${vehicle.plate}</p><p class="text-[10px] text-gray-500 mt-1 uppercase">${vehicle.company}</p>`;
                 plateGrid.appendChild(card);
             });
+            
             document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
             document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
             document.getElementById('stat-missing').textContent = missingCount.toString().padStart(2, '0');
@@ -523,7 +580,11 @@
                 try {
                     const response = await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ plate: currentPlate, fileName: file.name, base64: base64 }) });
                     const result = await response.json();
-                    if (result.status === "success") showPreview(result.viewUrl);
+                    if (result.status === "success") {
+                        const vIndex = fleetData.findIndex(v => v.plate === currentPlate);
+                        if(vIndex !== -1) fleetData[vIndex].url = result.viewUrl;
+                        showPreview(result.viewUrl);
+                    }
                 } catch (err) { alert("上傳錯誤"); }
                 finally { document.getElementById('mgr-loading').classList.add('hidden'); }
             };
