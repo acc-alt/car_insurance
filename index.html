@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Herhsin | 雲端整合保險管理系統</title>
+    <title>Herhsin | 管理員安全授權系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
@@ -98,15 +98,6 @@
         }
         .modal.active { display: flex; }
 
-        .plate-card {
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .plate-card:hover {
-            border-color: var(--neon-blue);
-            background: rgba(0, 242, 255, 0.05);
-        }
-
         .status-tag {
             padding: 2px 8px;
             border-radius: 4px;
@@ -129,8 +120,10 @@
 
         input[type="date"] { color-scheme: dark; }
 
+        /* 管理員權限控制 CSS */
         .admin-only { display: none !important; }
         body.is-admin .admin-only { display: block !important; }
+        body.is-admin .admin-only-flex { display: flex !important; }
         body.is-admin .admin-only-cell { display: table-cell !important; }
         body.is-admin .admin-hidden { display: none !important; }
 
@@ -140,7 +133,6 @@
             transition: 0.3s;
         }
         
-        /* 載入中動畫 */
         .loader {
             border: 2px solid #f3f3f3;
             border-top: 2px solid var(--neon-blue);
@@ -155,9 +147,8 @@
 </head>
 <body class="flex min-h-screen">
     <script>
-        // 請將下方貼入你在 Google Apps Script 部署得到的 Web App URL
+        // 設定區
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMEoizEmworjcxFkeaSVE9TlFcDK_FZsTmnZAkt4cmGZII4V1uvwy_iGOa2Q2t6X4vzA/exec";
-        const ADMIN_PASSWORD = "admin888"; 
     </script>
 
     <div class="highway-lines">
@@ -235,7 +226,6 @@
             </div>
         </div>
 
-        <!-- 儀表板頁面 -->
         <div id="page-dashboard" class="page-content active space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="glass-panel p-6 hud-border">
@@ -255,7 +245,7 @@
             <div class="glass-panel overflow-hidden hud-border">
                 <div class="p-4 border-b border-white/5 bg-white/5 flex justify-between items-center">
                     <h4 class="text-xs font-bold tracking-widest">全艦隊保險狀態監測</h4>
-                    <span id="sync-status" class="text-[9px] text-gray-500 italic">正在載入雲端數據...</span>
+                    <span id="sync-status" class="text-[9px] text-gray-500 italic">正在載入數據...</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm">
@@ -277,7 +267,6 @@
             </div>
         </div>
 
-        <!-- 保單管理頁面 -->
         <div id="page-plans" class="page-content space-y-6">
             <div id="plate-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
         </div>
@@ -287,14 +276,14 @@
     <div id="login-modal" class="modal">
         <div class="glass-panel w-full max-w-xs p-8 hud-border m-4">
             <div class="text-center mb-6">
-                <h3 class="text-lg font-bold text-cyan-400 tech-font">AUTH REQUIRED</h3>
-                <p class="text-[10px] text-gray-500">請輸入管理員金鑰</p>
+                <h3 class="text-lg font-bold text-cyan-400 tech-font">SECURITY GATE</h3>
+                <p class="text-[10px] text-gray-500">請輸入管理員金鑰以取得修改權限</p>
             </div>
             <div class="space-y-4">
                 <input type="password" id="login-pwd" placeholder="密碼..." class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white text-center">
                 <div class="flex gap-2">
                     <button onclick="toggleModal('login-modal', false)" class="flex-1 border border-white/10 py-2 text-xs text-gray-500 hover:text-white transition">取消</button>
-                    <button onclick="handleLogin()" class="flex-1 btn-action py-2 text-xs font-bold text-black uppercase">登入</button>
+                    <button id="btn-login-submit" onclick="handleLogin()" class="flex-1 btn-action py-2 text-xs font-bold text-black uppercase">授權登入</button>
                 </div>
             </div>
         </div>
@@ -303,7 +292,7 @@
     <!-- 車輛註冊/編輯視窗 -->
     <div id="vehicle-modal" class="modal">
         <div class="glass-panel w-full max-w-md p-8 hud-border m-4 overflow-y-auto max-h-[90vh]">
-            <h3 id="modal-title" class="text-lg font-bold mb-6 text-cyan-400 tech-font">ASSET REGISTRATION</h3>
+            <h3 id="modal-title" class="text-lg font-bold mb-6 text-cyan-400 tech-font">SYNC TO CLOUD</h3>
             <form id="vehicle-form" onsubmit="handleVehicleSubmit(event)" class="space-y-5">
                 <input type="hidden" id="v-index">
                 <input type="hidden" id="v-fileId">
@@ -335,8 +324,8 @@
                     <div><label class="block text-[10px] text-gray-500 mb-1">到期日</label><input type="date" id="v-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
                 </div>
                 
-                <div class="admin-only">
-                    <label class="block text-[10px] text-gray-500 mb-1">保單 PDF 檔案 (Google Drive)</label>
+                <div>
+                    <label class="block text-[10px] text-gray-500 mb-1">保單 PDF 檔案 (雲端儲存)</label>
                     <div class="file-upload-area relative p-6 rounded text-center">
                         <input type="file" id="v-pdf" accept="application/pdf" onchange="handleFileChange(this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         <div id="file-display" class="space-y-1">
@@ -354,8 +343,8 @@
                 </div>
 
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-500">取消</button>
-                    <button type="submit" id="btn-save-vehicle" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">同步至雲端</button>
+                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-400">取消</button>
+                    <button type="submit" id="btn-save-vehicle" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">同步雲端資料庫</button>
                 </div>
             </form>
         </div>
@@ -375,33 +364,23 @@
             checkAdminSession();
         };
 
-        // 從 Google Apps Script 獲取資料
         async function fetchFleetData() {
             if (isFetching) return;
             isFetching = true;
-            document.getElementById('sync-status').textContent = "正在從 Google Drive 同步...";
+            document.getElementById('sync-status').textContent = "正在連線雲端資料庫...";
             
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', // 用於 GAS 跨域
-                    body: JSON.stringify({ action: 'fetch' })
-                });
-
-                // 因為 no-cors 無法直接讀取 response，我們改用真正的 POST 請求
-                // 注意：在正式環境中建議使用正向代理或 CORS 處理
-                // 這裡採用一個小技巧：Google App Script 需要處理重定向
-                const resp = await fetch(GAS_WEB_APP_URL + "?callback=?", {
+                const resp = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'fetch' })
                 });
                 const data = await resp.json();
                 fleetData = data;
                 renderFleet();
-                document.getElementById('sync-status').textContent = "雲端同步完成 (Google Drive)";
+                document.getElementById('sync-status').textContent = "數據已同步 (Google Drive)";
             } catch (error) {
                 console.error("Sync error:", error);
-                document.getElementById('sync-status').textContent = "同步失敗，請確認腳本網址";
+                document.getElementById('sync-status').textContent = "同步失敗，請確認網路連線";
             } finally {
                 isFetching = false;
             }
@@ -409,9 +388,14 @@
 
         async function handleVehicleSubmit(e) {
             e.preventDefault();
+            if (!isAdmin) {
+                alert("權限不足：只有管理員可以同步雲端資料。");
+                return;
+            }
+
             const btn = document.getElementById('btn-save-vehicle');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loader"></span> 雲端同步中...';
+            btn.innerHTML = '<span class="loader"></span> 寫入雲端中...';
 
             const vehicle = {
                 action: 'save',
@@ -426,17 +410,23 @@
             };
 
             try {
-                await fetch(GAS_WEB_APP_URL, {
+                const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify(vehicle)
                 });
-                toggleModal('vehicle-modal', false);
-                await fetchFleetData();
+                const res = await response.json();
+                
+                if (res.status === 'success') {
+                    toggleModal('vehicle-modal', false);
+                    await fetchFleetData();
+                } else {
+                    throw new Error("Server error");
+                }
             } catch (err) {
-                alert("存儲失敗，請檢查網路或腳本設置");
+                alert("存儲失敗，請檢查網路連接");
             } finally {
                 btn.disabled = false;
-                btn.textContent = '同步至雲端';
+                btn.textContent = '同步雲端資料庫';
             }
         }
 
@@ -468,16 +458,44 @@
             currentFileName = null;
         }
 
-        function handleLogin() {
-            const pwd = document.getElementById('login-pwd').value;
-            if (pwd === ADMIN_PASSWORD) {
-                isAdmin = true;
-                sessionStorage.setItem('herhsin_admin', 'true');
-                applyAdminUI();
-                toggleModal('login-modal', false);
-                document.getElementById('login-pwd').value = "";
-                renderFleet();
-            } else { alert("存取拒絕：金鑰錯誤"); }
+        async function handleLogin() {
+            const pwdInput = document.getElementById('login-pwd');
+            const pwd = pwdInput.value;
+            const btn = document.getElementById('btn-login-submit');
+
+            if (!pwd) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> 驗證中...';
+
+            try {
+                // 發送密碼到後端驗證，而不是在前端比對
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ 
+                        action: 'login', 
+                        password: pwd 
+                    })
+                });
+                const res = await response.json();
+
+                if (res.status === 'success') {
+                    isAdmin = true;
+                    sessionStorage.setItem('herhsin_admin', 'true');
+                    applyAdminUI();
+                    toggleModal('login-modal', false);
+                    pwdInput.value = "";
+                    renderFleet();
+                } else {
+                    alert("授權失敗：金鑰錯誤");
+                    pwdInput.value = "";
+                }
+            } catch (err) {
+                alert("連線驗證伺服器失敗");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '授權登入';
+            }
         }
 
         function logout() {
@@ -517,7 +535,8 @@
         }
 
         function openAddVehicleModal() {
-            document.getElementById('modal-title').textContent = "註冊新車輛資產";
+            if (!isAdmin) return;
+            document.getElementById('modal-title').textContent = "雲端資產註冊";
             document.getElementById('vehicle-form').reset();
             document.getElementById('v-index').value = "";
             document.getElementById('v-fileId').value = "";
@@ -526,8 +545,9 @@
         }
 
         function editVehicle(index) {
+            if (!isAdmin) return;
             const v = fleetData[index];
-            document.getElementById('modal-title').textContent = "編輯車輛資產";
+            document.getElementById('modal-title').textContent = "更新雲端資產";
             document.getElementById('v-index').value = index;
             document.getElementById('v-plate').value = v.plate;
             document.getElementById('v-model').value = v.model;
@@ -537,14 +557,13 @@
             document.getElementById('v-fileId').value = v.fileId || "";
             clearFileSelection();
             if (v.fileId) {
-                updateFileUI(v.pdfName || "已上傳檔案");
+                updateFileUI(v.pdfName || "已存於 Google Drive");
             }
             toggleModal('vehicle-modal', true);
         }
 
         function viewPolicy(fileId) {
             if (!fileId) return alert("無檔案紀錄");
-            // Google Drive 預覽網址
             const url = `https://drive.google.com/file/d/${fileId}/view`;
             window.open(url, '_blank');
         }
@@ -562,7 +581,7 @@
 
             fleetData.forEach((v, i) => {
                 let statusClass = 'status-ok', statusText = '安全';
-                if (!v.expiry) { statusClass = 'status-none'; statusText = '無資料'; missingCount++; }
+                if (!v.expiry) { statusClass = 'status-none'; statusText = '待補齊'; missingCount++; }
                 else {
                     const exp = new Date(v.expiry);
                     if (exp < now) { statusClass = 'status-none'; statusText = '已過期'; missingCount++; }
@@ -579,7 +598,7 @@
                     <td class="p-4 text-xs opacity-70">${v.start || '---'}</td>
                     <td class="p-4 tech-font text-xs">${v.expiry || '---'}</td>
                     <td class="p-4 text-center">
-                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="text-cyan-500 hover:text-white"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></button>` : `<span class="text-gray-800"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></span>`}
+                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="text-cyan-500 hover:text-white" title="開啟雲端文件"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></button>` : `<span class="text-gray-800"><svg class="w-5 h-5 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></span>`}
                     </td>
                     <td class="p-4 admin-only-cell">
                         <button onclick="editVehicle(${i})" class="text-cyan-500 hover:text-cyan-300 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg></button>
@@ -597,9 +616,10 @@
                     <p class="tech-font text-xl font-black text-white mb-1 group-hover:text-cyan-400 transition">${v.plate}</p>
                     <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-4">${v.company}</p>
                     <div class="w-full space-y-2 mt-auto">
-                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">查看雲端 PDF</button>` : `<div class="w-full py-2 bg-white/5 text-gray-700 text-[10px] text-center border border-white/5 uppercase">無檔案</div>`}
+                        ${v.fileId ? `<button onclick="viewPolicy('${v.fileId}')" class="w-full py-2 bg-cyan-500 text-black text-[10px] font-bold uppercase hover:bg-white transition">預覽 Google Drive PDF</button>` : `<div class="w-full py-2 bg-white/5 text-gray-700 text-[10px] text-center border border-white/5 uppercase">無文件存檔</div>`}
                         <div class="flex justify-between items-center px-1"><span class="text-[9px] text-gray-600 tech-font">EXP: ${v.expiry || '---'}</span><span class="status-tag ${statusClass}" style="padding:1px 4px; font-size:8px;">${statusText}</span></div>
                     </div>
+                    ${isAdmin ? `<button onclick="editVehicle(${i})" class="mt-4 text-[9px] text-cyan-500 underline opacity-0 group-hover:opacity-100 transition">修改雲端資料</button>` : ''}
                 `;
                 grid.appendChild(card);
             });
@@ -610,7 +630,8 @@
         }
 
         function updateClock() {
-            document.getElementById('current-time').textContent = new Date().toLocaleTimeString('zh-TW', {hour12: false});
+            const time = new Date().toLocaleTimeString('zh-TW', {hour12: false});
+            document.getElementById('current-time').textContent = time;
         }
     </script>
 </body>
