@@ -170,15 +170,19 @@
     <script>
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMEoizEmworjcxFkeaSVE9TlFcDK_FZsTmnZAkt4cmGZII4V1uvwy_iGOa2Q2t6X4vzA/exec";
         
-        function getTaiwanDate(dateStr) {
-            if (!dateStr) return null;
-            const d = new Date(dateStr);
+        function getTaiwanDate(dateInput) {
+            if (!dateInput) return null;
+            // 如果 input 已經是 Date 物件
+            let d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+            if (isNaN(d.getTime())) return null;
             return new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
         }
 
-        function formatToTaiwanString(dateStr) {
-            if (!dateStr) return '---';
-            const d = new Date(dateStr);
+        function formatToTaiwanString(dateInput) {
+            if (!dateInput) return '---';
+            let d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+            if (isNaN(d.getTime())) return '---';
+            
             const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Taipei' };
             const parts = new Intl.DateTimeFormat('zh-TW', options).formatToParts(d);
             const year = parts.find(p => p.type === 'year').value;
@@ -602,8 +606,11 @@
             document.getElementById('v-plate').readOnly = true; 
             document.getElementById('v-model').value = v.model || "";
             document.getElementById('v-company').value = v.company || "富邦產險";
+            
+            // 轉換日期格式以適配 input[type="date"]
             document.getElementById('v-start').value = v.start ? formatToTaiwanString(v.start) : "";
             document.getElementById('v-expiry').value = v.expiry ? formatToTaiwanString(v.expiry) : "";
+            
             document.getElementById('v-fileId').value = v.fileId || "";
             clearFileSelection();
             toggleModal('vehicle-modal', true);
@@ -622,29 +629,34 @@
 
             fleetData.forEach((v, i) => {
                 let statusClass = 'status-ok', statusText = '期限內';
+                
+                // 確保讀取 v.start 欄位並格式化顯示
                 const displayStart = v.start ? formatToTaiwanString(v.start) : '---';
                 const displayExpiry = v.expiry ? formatToTaiwanString(v.expiry) : '---';
 
-                if (!v.expiry) { statusClass = 'status-none'; statusText = '待補齊'; missingCount++; }
-                else {
+                if (!v.expiry) { 
+                    statusClass = 'status-none'; statusText = '待補齊'; missingCount++; 
+                } else {
                     const expDate = getTaiwanDate(v.expiry);
-                    if (expDate < now) { statusClass = 'status-none'; statusText = '已過期'; missingCount++; }
-                    else if (expDate < thirtyDays) { statusClass = 'status-warning'; statusText = '即將到期'; warningCount++; }
+                    if (expDate && expDate < now) { 
+                        statusClass = 'status-none'; statusText = '已過期'; missingCount++; 
+                    } else if (expDate && expDate < thirtyDays) { 
+                        statusClass = 'status-warning'; statusText = '即將到期'; warningCount++; 
+                    }
                 }
 
                 // 總覽表格列
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-white/5 transition border-b border-white/5";
                 
-                // 修改處：將操作項目按鈕改為文字「編輯」或「檢視」
                 const actionBtn = isAdmin 
                     ? `<button onclick="openEditModal(${i})" class="px-3 py-1 border border-cyan-500/50 text-cyan-400 text-xs hover:bg-cyan-500 hover:text-black transition rounded">編輯</button>`
                     : `<button onclick="openPdf('${v.fileId || ""}')" class="px-3 py-1 border border-gray-600 text-gray-400 text-xs hover:border-cyan-400 hover:text-cyan-400 transition rounded">檢視</button>`;
 
                 tr.innerHTML = `
                     <td class="p-4 tech-font font-bold text-cyan-400">${v.plate}</td>
-                    <td class="p-4 text-gray-400 text-xs">${v.model}</td>
-                    <td class="p-4 text-xs text-white/80">${v.company}</td>
+                    <td class="p-4 text-gray-400 text-xs">${v.model || '---'}</td>
+                    <td class="p-4 text-xs text-white/80">${v.company || '---'}</td>
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
                     <td class="p-4 text-xs opacity-70">${displayStart}</td>
                     <td class="p-4 tech-font text-xs">${displayExpiry}</td>
@@ -653,7 +665,7 @@
                 `;
                 list.appendChild(tr);
 
-                // 保單管理卡片 (不提供編輯，僅供檢視)
+                // 保單管理卡片
                 const card = document.createElement('div');
                 card.className = "glass-panel p-5 hud-border flex flex-col items-center group relative overflow-hidden";
                 
