@@ -355,11 +355,11 @@
                 <input type="hidden" id="v-fileId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[10px] text-gray-500 mb-1">車牌號碼</label>
+                        <label class="block text-[15x] text-gray-500 mb-1">車牌號碼</label>
                         <input type="text" id="v-plate" required class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white uppercase">
                     </div>
                     <div>
-                        <label class="block text-[10px] text-gray-500 mb-1">保險公司</label>
+                        <label class="block text-[15px] text-gray-500 mb-1">保險公司</label>
                         <select id="v-company" class="w-full bg-black/50 border border-white/10 p-3 text-[10px] focus:border-cyan-500 outline-none text-white">
                             <option value="富邦產險">富邦產險</option>
                             <option value="國泰產險">國泰產險</option>
@@ -373,15 +373,15 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">車型資訊</label>
+                    <label class="block text-[15px] text-gray-500 mb-1">車型資訊</label>
                     <input type="text" id="v-model" required class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="block text-[10px] text-gray-500 mb-1">起始日</label><input type="date" id="v-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
-                    <div><label class="block text-[10px] text-gray-500 mb-1">到期日</label><input type="date" id="v-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                    <div><label class="block text-[15px] text-gray-500 mb-1">起始日</label><input type="date" id="v-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
+                    <div><label class="block text-[15px] text-gray-500 mb-1">到期日</label><input type="date" id="v-expiry" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
                 </div>
                 <div>
-                    <label class="block text-[10px] text-gray-500 mb-1">保單 PDF 檔案</label>
+                    <label class="block text-[15px] text-gray-500 mb-1">保單 PDF 檔案</label>
                     <div class="file-upload-area relative p-6 rounded text-center">
                         <input type="file" id="v-pdf" accept="application/pdf" onchange="handleFileChange(this)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
                         <div id="file-display" class="space-y-1">
@@ -395,8 +395,8 @@
                     </div>
                 </div>
                 <div class="pt-4 flex gap-3">
-                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-xs text-gray-400">取消</button>
-                    <button type="submit" id="btn-save-vehicle" class="flex-1 btn-action py-3 text-xs font-bold text-black uppercase">同步雲端資料庫</button>
+                    <button type="button" onclick="toggleModal('vehicle-modal', false)" class="flex-1 border border-white/10 py-3 text-base text-gray-400">取消</button>
+                    <button type="submit" id="btn-save-vehicle" class="flex-1 btn-action py-3 text-base font-bold text-black uppercase">同步雲端資料庫</button>
                 </div>
             </form>
         </div>
