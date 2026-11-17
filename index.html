@@ -321,6 +321,17 @@
 
         .empty-state { padding: 56px 16px; text-align: center; color: #7f93a6; font-size: 0.95rem; }
         @media (prefers-reduced-motion: reduce) { .modal.active .glass-panel { animation: none; } }
+
+        /* 車輛檢驗頁 */
+        #page-inspect thead { background: rgba(25, 230, 255, 0.05); }
+        #page-inspect thead th { color: #8fb4c9; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.12em; padding: 16px; }
+        #inspect-list tr { border-bottom: 1px solid rgba(255, 255, 255, 0.05); transition: background 0.2s; }
+        #inspect-list tr:hover { background: linear-gradient(90deg, rgba(25, 230, 255, 0.08), transparent); }
+        .status-pending { background: rgba(160, 176, 195, 0.1); color: #9fb0c3; border-color: rgba(160, 176, 195, 0.4); }
+        .inspect-badge { position: absolute; top: 8px; right: 10px; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 20px; text-align: center; background: var(--amber); color: #1a1200; }
+        .inspect-badge.danger { background: var(--danger); color: #fff; }
+        .inspect-alert { border: 1px solid rgba(255, 194, 71, 0.45); background: rgba(255, 194, 71, 0.08); color: #ffe7b0; border-radius: 12px; padding: 14px 18px; font-size: 0.95rem; }
+        .inspect-alert.danger { border-color: rgba(255, 93, 115, 0.5); background: rgba(255, 93, 115, 0.09); color: #ffd5db; }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -421,6 +432,13 @@
                     <span>保單管理</span>
                 </div>
             </button>
+            <button onclick="showPage('inspect')" class="nav-btn relative w-full p-4 flex items-center gap-4 text-sm font-medium hover:bg-white/5 transition">
+                <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div class="hidden md:flex flex-col items-start leading-tight"><span>車輛檢驗</span></div>
+                <span id="inspect-badge" class="inspect-badge" style="display:none">0</span>
+            </button>
         </nav>
 
         <div class="p-4 border-t border-white/5">
@@ -520,6 +538,20 @@
             </div>
             <div id="plate-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
         </div>
+        <!-- 車輛檢驗分頁 -->
+        <div id="page-inspect" class="page-content space-y-6">
+            <div id="inspect-alert" class="inspect-alert" style="display:none"></div>
+            <div id="inspect-summary" class="flex flex-wrap gap-3"></div>
+            <div class="glass-panel hud-border overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead><tr>
+                        <th>車牌</th><th>車型</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>狀態</th><th>備註</th>
+                        <th class="admin-only-cell text-center">操作</th>
+                    </tr></thead>
+                    <tbody id="inspect-list"></tbody>
+                </table>
+            </div>
+        </div>
     </main>
 
     <!-- 登入視窗 -->
@@ -539,6 +571,28 @@
     </div>
 
     <!-- 編輯/註冊視窗 -->
+    <div id="inspect-modal" class="modal">
+        <div class="glass-panel w-full max-w-md p-8 hud-border m-4 overflow-y-auto max-h-[90vh]">
+            <h3 class="text-lg font-bold mb-3 text-cyan-400 tech-font">記錄車輛檢驗</h3>
+            <p id="i-plate-label" class="mb-6"></p>
+            <form id="inspect-form" onsubmit="handleInspectSubmit(event)" class="space-y-5">
+                <input type="hidden" id="i-plate">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[15px] text-gray-500 mb-1">最近檢驗日</label><input type="date" id="i-last" onchange="autoNextInspect()" class="w-full bg-black/50 border border-white/10 p-3 text-sm outline-none tech-font text-white"></div>
+                    <div><label class="block text-[15px] text-gray-500 mb-1">檢驗週期</label>
+                        <select id="i-cycle" onchange="autoNextInspect()" class="w-full bg-black/50 border border-white/10 p-3 text-sm outline-none text-white">
+                            <option value="">手動輸入</option><option value="6">6 個月</option><option value="12">1 年</option><option value="24">2 年</option>
+                        </select></div>
+                </div>
+                <div><label class="block text-[15px] text-gray-500 mb-1">下次檢驗日</label><input type="date" id="i-next" class="w-full bg-black/50 border border-white/10 p-3 text-sm outline-none tech-font text-white"></div>
+                <div><label class="block text-[15px] text-gray-500 mb-1">備註（檢驗站、費用等）</label><input type="text" id="i-note" maxlength="100" class="w-full bg-black/50 border border-white/10 p-3 text-sm outline-none text-white"></div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="toggleModal('inspect-modal', false)" class="flex-1 py-3 text-sm text-gray-400 border border-white/10 hover:bg-white/5 rounded-lg transition">取消</button>
+                    <button type="submit" id="btn-save-inspect" class="btn-action flex-1 py-3 text-sm font-bold">儲存檢驗紀錄</button>
+                </div>
+            </form>
+        </div>
+    </div>
     <div id="vehicle-modal" class="modal">
         <div class="glass-panel w-full max-w-md p-8 hud-border m-4 overflow-y-auto max-h-[90vh]">
             <h3 id="modal-title" class="text-lg font-bold mb-6 text-cyan-400 tech-font">SYNC TO CLOUD</h3>
@@ -618,6 +672,7 @@
                 if (e.key === 'Escape') {
                     toggleModal('login-modal', false);
                     toggleModal('vehicle-modal', false);
+                    toggleModal('inspect-modal', false);
                 }
             });
         });
@@ -801,7 +856,8 @@
             document.getElementById('page-' + pageId).classList.add('active');
             const titles = {
                 dashboard: ['車輛總覽', 'Fleet Overview'],
-                plans: ['保單管理', 'Policy Vault']
+                plans: ['保單管理', 'Policy Vault'],
+                inspect: ['車輛檢驗', 'Inspection Log']
             };
             const [zh, en] = titles[pageId] || titles.dashboard;
             document.getElementById('page-title-text').textContent = zh;
@@ -935,9 +991,120 @@
                 grid.innerHTML = '<div class="empty-state glass-panel col-span-full">尚無已存檔的電子保單。</div>';
             }
 
+            renderInspect();
+
             document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
             document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
             document.getElementById('stat-missing').textContent = missingCount.toString().padStart(2, '0');
+        }
+
+        // ===== 車輛檢驗 =====
+        function addMonthsYMD(ymd, n) {
+            const [y, m, d] = ymd.split('-').map(Number);
+            const t = new Date(Date.UTC(y, m - 1 + n, 1));
+            const lastDay = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate();
+            t.setUTCDate(Math.min(d, lastDay));
+            return t.toISOString().slice(0, 10);
+        }
+
+        function autoNextInspect() {
+            const last = document.getElementById('i-last').value;
+            const cycle = parseInt(document.getElementById('i-cycle').value, 10);
+            if (last && cycle) document.getElementById('i-next').value = addMonthsYMD(last, cycle);
+        }
+
+        function renderInspect() {
+            const list = document.getElementById('inspect-list');
+            const today = toTaiwanYMD(new Date());
+            const warnLimit = addDaysYMD(today, 30);
+            const dayDiff = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+            const counts = [0, 0, 0, 0]; // 逾期、30天內、正常、未記錄
+            const urgent = [];
+
+            const items = fleetData.map((v, i) => {
+                const next = toTaiwanYMD(v.nextInspect);
+                let rank = 3, cls = 'status-pending', text = '未記錄', days = '---';
+                if (next) {
+                    const diff = dayDiff(today, next);
+                    if (diff < 0) { rank = 0; cls = 'status-none'; text = '已逾期'; days = `逾期 ${-diff} 天`; }
+                    else if (next <= warnLimit) { rank = 1; cls = 'status-warning'; text = '即將到期'; days = diff === 0 ? '今天到期' : `剩 ${diff} 天`; }
+                    else { rank = 2; cls = 'status-ok'; text = '正常'; days = `剩 ${diff} 天`; }
+                }
+                counts[rank]++;
+                if (rank < 2) urgent.push(`${escapeHtml(v.plate)}（${days}）`);
+                return { v, i, next, rank, cls, text, days };
+            }).sort((a, b) => a.rank - b.rank || a.next.localeCompare(b.next));
+
+            list.innerHTML = items.length ? items.map(o => `
+                <tr>
+                    <td class="p-4"><span class="plate-chip">${escapeHtml(o.v.plate)}</span></td>
+                    <td class="p-4 text-gray-400">${escapeHtml(o.v.model) || '---'}</td>
+                    <td class="p-4 opacity-70">${toTaiwanYMD(o.v.lastInspect) || '---'}</td>
+                    <td class="p-4 opacity-70">${o.next || '---'}</td>
+                    <td class="p-4 tech-font">${o.days}</td>
+                    <td class="p-4"><span class="status-tag ${o.cls}">${o.text}</span></td>
+                    <td class="p-4 text-gray-400 text-sm">${escapeHtml(o.v.inspectNote) || ''}</td>
+                    <td class="p-4 text-center admin-only-cell"><button onclick="openInspectModal(${o.i})" class="px-3 py-1 border border-cyan-500/50 text-cyan-400 text-xs hover:bg-cyan-500 hover:text-black transition rounded">記錄檢驗</button></td>
+                </tr>`).join('')
+                : '<tr><td colspan="8" class="empty-state">目前沒有車輛資料，請先到車輛總覽新增車輛。</td></tr>';
+
+            document.getElementById('inspect-summary').innerHTML =
+                `<span class="status-tag status-none">已逾期 ${counts[0]}</span>` +
+                `<span class="status-tag status-warning">30 天內 ${counts[1]}</span>` +
+                `<span class="status-tag status-ok">正常 ${counts[2]}</span>` +
+                `<span class="status-tag status-pending">未記錄 ${counts[3]}</span>`;
+
+            const alertBox = document.getElementById('inspect-alert');
+            alertBox.style.display = urgent.length ? 'block' : 'none';
+            alertBox.classList.toggle('danger', counts[0] > 0);
+            alertBox.innerHTML = `有 ${urgent.length} 輛車需要安排檢驗：${urgent.join('、')}`;
+
+            const badge = document.getElementById('inspect-badge');
+            badge.style.display = urgent.length ? 'block' : 'none';
+            badge.textContent = urgent.length;
+            badge.classList.toggle('danger', counts[0] > 0);
+        }
+
+        function openInspectModal(index) {
+            if (!isAdmin) return;
+            const v = fleetData[index];
+            if (!v) return;
+            document.getElementById('i-plate').value = v.plate;
+            document.getElementById('i-plate-label').innerHTML =
+                `<span class="plate-chip">${escapeHtml(v.plate)}</span><span class="text-gray-500 text-sm ml-3">${escapeHtml(v.model)}</span>`;
+            document.getElementById('i-last').value = toTaiwanYMD(v.lastInspect);
+            document.getElementById('i-next').value = toTaiwanYMD(v.nextInspect);
+            document.getElementById('i-note').value = v.inspectNote || '';
+            document.getElementById('i-cycle').value = '';
+            toggleModal('inspect-modal', true);
+        }
+
+        async function handleInspectSubmit(e) {
+            e.preventDefault();
+            if (!isAdmin) return;
+            const last = document.getElementById('i-last').value || '';
+            const next = document.getElementById('i-next').value || '';
+            if (last && next && next < last) { alert("下次檢驗日不可早於最近檢驗日"); return; }
+
+            const btn = document.getElementById('btn-save-inspect');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loader"></span> 同步中...';
+            try {
+                const res = await callApi({
+                    action: 'saveInspection', password: adminKey,
+                    plate: document.getElementById('i-plate').value,
+                    lastInspect: last, nextInspect: next,
+                    inspectNote: document.getElementById('i-note').value.trim()
+                });
+                if (res.status !== 'success') throw new Error(res.message || '未知錯誤');
+                toggleModal('inspect-modal', false);
+                await refreshAfterWrite();
+            } catch (err) {
+                alert("存儲失敗：" + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '儲存檢驗紀錄';
+            }
         }
 
         function updateClock() {
