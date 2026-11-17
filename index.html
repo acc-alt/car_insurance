@@ -332,6 +332,11 @@
         .inspect-badge.danger { background: var(--danger); color: #fff; }
         .inspect-alert { border: 1px solid rgba(255, 194, 71, 0.45); background: rgba(255, 194, 71, 0.08); color: #ffe7b0; border-radius: 12px; padding: 14px 18px; font-size: 0.95rem; }
         .inspect-alert.danger { border-color: rgba(255, 93, 115, 0.5); background: rgba(255, 93, 115, 0.09); color: #ffd5db; }
+        /* 表格文字改為亮白 */
+        #page-dashboard thead th, #page-inspect thead th { color: #ffffff; }
+        #dashboard-fleet-list td, #inspect-list td:not(.empty-state) { color: #ffffff; opacity: 1; }
+        #dashboard-fleet-list td.empty-state { color: #7f93a6; }
+        #dashboard-fleet-list td > button.text-gray-400:not(:hover) { color: #ffffff; border-color: rgba(255, 255, 255, 0.5); }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -521,7 +526,7 @@
                                 <th class="p-4 text-base">保險狀態</th>
                                 <th class="p-4 text-base">起始日期</th>
                                 <th class="p-4 text-base">到期日期</th>
-                                <th class="p-4 text-base text-center">操作</th>
+                                <th class="p-4 text-base text-center">編輯</th>
                                 <th class="p-4 text-base admin-only-cell text-center">移除</th>
                             </tr>
                         </thead>
@@ -546,7 +551,7 @@
                 <table class="w-full text-left">
                     <thead><tr>
                         <th>車牌</th><th>車型</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>狀態</th><th>備註</th>
-                        <th class="admin-only-cell text-center">操作</th>
+                        <th class="admin-only-cell text-center">編輯</th>
                     </tr></thead>
                     <tbody id="inspect-list"></tbody>
                 </table>
