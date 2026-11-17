@@ -36,7 +36,9 @@
             background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
             height: 1px; width: 300px;
             animation: flow 6s infinite linear;
+            will-change: transform;
         }
+        @media (prefers-reduced-motion: reduce) { .line { animation: none; } }
         @keyframes flow {
             from { transform: translateX(-100vw) translateY(100vh) rotate(-45deg); }
             to { transform: translateX(100vw) translateY(-100vh) rotate(-45deg); }
@@ -44,7 +46,6 @@
 
         .glass-panel {
             background: var(--glass-card-bg);
-            backdrop-filter: blur(20px);
             border: 1px solid rgba(0, 242, 255, 0.1);
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
@@ -131,7 +132,7 @@
         input[type="date"] { color-scheme: dark; }
 
         /* 管理員權限控制 CSS */
-        .admin-only { display: none !important; }
+        .admin-only, .admin-only-flex, .admin-only-cell { display: none !important; }
         body.is-admin .admin-only { display: block !important; }
         body.is-admin .admin-only-flex { display: flex !important; }
         body.is-admin .admin-only-cell { display: table-cell !important; }
@@ -154,6 +155,65 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+        /* ===== 頁面大標題 ===== */
+        .hero-title {
+            display: flex;
+            align-items: stretch;
+            gap: 18px;
+            padding: 6px 0;
+        }
+        .hero-accent {
+            width: 6px;
+            border-radius: 3px;
+            background: linear-gradient(180deg, var(--neon-blue), var(--neon-green));
+            box-shadow: 0 0 14px var(--neon-blue), 0 0 30px rgba(0, 242, 255, 0.4);
+        }
+        .hero-text {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-bottom: 10px;
+        }
+        .hero-text::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: 0;
+            width: 100%; height: 1px;
+            background: linear-gradient(90deg, var(--neon-blue), rgba(57, 255, 20, 0.5), transparent);
+        }
+        .hero-sub {
+            font-size: 11px;
+            letter-spacing: 0.55em;
+            text-transform: uppercase;
+            color: var(--neon-blue);
+            opacity: 0.85;
+            text-shadow: 0 0 8px rgba(0, 242, 255, 0.6);
+        }
+        .hero-main {
+            font-size: clamp(2rem, 5.5vw, 3.6rem);
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            line-height: 1.1;
+            background: linear-gradient(90deg, #ffffff 0%, var(--neon-blue) 25%, var(--neon-green) 50%, var(--neon-blue) 75%, #ffffff 100%);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            filter: drop-shadow(0 0 14px rgba(0, 242, 255, 0.45));
+            animation: titleShine 5s linear infinite;
+        }
+        @keyframes titleShine { to { background-position: 200% center; } }
+        .hero-title.switching .hero-text { animation: titleIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes titleIn {
+            from { opacity: 0; transform: translateX(-28px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-main, .hero-title.switching .hero-text { animation: none; }
+        }
+
         #error-banner {
             display: none;
             background: rgba(255, 0, 0, 0.15);
@@ -169,26 +229,36 @@
 <body class="flex min-h-screen">
     <script>
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyMEoizEmworjcxFkeaSVE9TlFcDK_FZsTmnZAkt4cmGZII4V1uvwy_iGOa2Q2t6X4vzA/exec";
-        
-        function getTaiwanDate(dateInput) {
-            if (!dateInput) return null;
-            // 如果 input 已經是 Date 物件
-            let d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-            if (isNaN(d.getTime())) return null;
-            return new Date(d.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+
+        // 取得「台灣時區」的 YYYY-MM-DD 字串；日期比較一律用這個字串，避免時區與時分秒造成誤判
+        function toTaiwanYMD(dateInput) {
+            if (!dateInput) return '';
+            if (typeof dateInput === 'string') {
+                const m = dateInput.trim().match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/);
+                if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+            }
+            const d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+            if (isNaN(d.getTime())) return '';
+            const parts = new Intl.DateTimeFormat('en-US', {
+                year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Taipei'
+            }).formatToParts(d);
+            const get = t => parts.find(p => p.type === t).value;
+            return `${get('year')}-${get('month')}-${get('day')}`;
+        }
+
+        function addDaysYMD(ymd, days) {
+            const [y, m, d] = ymd.split('-').map(Number);
+            return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
         }
 
         function formatToTaiwanString(dateInput) {
-            if (!dateInput) return '---';
-            let d = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-            if (isNaN(d.getTime())) return '---';
-            
-            const options = { year: 'numeric', month: '2-digit', day: '2-digit', timeZone: 'Asia/Taipei' };
-            const parts = new Intl.DateTimeFormat('zh-TW', options).formatToParts(d);
-            const year = parts.find(p => p.type === 'year').value;
-            const month = parts.find(p => p.type === 'month').value;
-            const day = parts.find(p => p.type === 'day').value;
-            return `${year}-${month}-${day}`;
+            return toTaiwanYMD(dateInput) || '---';
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => (
+                { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+            ));
         }
 
         function openPdf(fileId) {
@@ -196,7 +266,30 @@
                 alert("此車輛目前尚未上傳保單 PDF。");
                 return;
             }
-            window.open(`https://drive.google.com/file/d/${fileId}/view`, '_blank');
+            window.open(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/view`, '_blank', 'noopener');
+        }
+
+        // 統一的 API 呼叫：含逾時保護，避免伺服器沒回應時畫面永遠卡在「同步中」
+        async function callApi(payload, timeoutMs = 30000) {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+            try {
+                const resp = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload),
+                    signal: ctrl.signal
+                });
+                if (!resp.ok) throw new Error(`伺服器回應錯誤 (HTTP ${resp.status})`);
+                const text = await resp.text();
+                try { return JSON.parse(text); }
+                catch (_) { throw new Error('伺服器回傳格式不正確，請確認 Apps Script 已部署為「所有人皆可存取」'); }
+            } catch (err) {
+                if (err.name === 'AbortError') throw new Error('連線逾時，請稍後再試');
+                throw err;
+            } finally {
+                clearTimeout(timer);
+            }
         }
     </script>
 
@@ -259,16 +352,18 @@
         </div>
 
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div id="page-title-box" class="hud-border p-2 px-4">
-                <div class="flex flex-col">
-                    <h2 id="page-title-text" class="text-xl font-bold tracking-widest leading-none">車輛總覽</h2>
+            <div id="page-title-box" class="hero-title">
+                <div class="hero-accent"></div>
+                <div class="hero-text">
+                    <span id="page-title-sub" class="hero-sub tech-font">Fleet Overview</span>
+                    <h2 id="page-title-text" class="hero-main">車輛總覽</h2>
                 </div>
             </div>
             <div class="flex items-center gap-4">
                 <button onclick="fetchFleetData()" id="btn-sync" class="p-2 border border-white/10 hover:border-cyan-500 text-gray-400 hover:text-cyan-500 transition" title="重新整理雲端資料">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357-2H15"/></svg>
                 </button>
-                <button onclick="openAddVehicleModal()" class="admin-only btn-action px-4 py-2 text-xs font-bold flex items-center gap-2">
+                <button onclick="openAddVehicleModal()" class="admin-only-flex btn-action px-4 py-2 text-xs font-bold flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
                     註冊新車輛
                 </button>
@@ -303,7 +398,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-base">
-                        <thead class="text-[10px] text-white-500 border-b border-white/5 bg-black/20">
+                        <thead class="text-[10px] text-gray-300 border-b border-white/5 bg-black/20">
                             <tr>
                                 <th class="p-4 text-base">車牌號碼</th>
                                 <th class="p-4 text-base">車型資訊</th>
@@ -311,7 +406,7 @@
                                 <th class="p-4 text-base">保險狀態</th>
                                 <th class="p-4 text-base">起始日期</th>
                                 <th class="p-4 text-base">到期日期</th>
-                                <th class="p-4 text-base text-center">編輯</th>
+                                <th class="p-4 text-base text-center">操作</th>
                                 <th class="p-4 text-base admin-only-cell text-center">移除</th>
                             </tr>
                         </thead>
@@ -355,7 +450,7 @@
                 <input type="hidden" id="v-fileId">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-[15x] text-gray-500 mb-1">車牌號碼</label>
+                        <label class="block text-[15px] text-gray-500 mb-1">車牌號碼</label>
                         <input type="text" id="v-plate" required class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white uppercase">
                     </div>
                     <div>
@@ -404,17 +499,31 @@
 
     <script>
         let isAdmin = false;
+        let adminKey = '';
         let fleetData = [];
         let currentFileBase64 = null;
         let currentFileName = null;
-        let isFetching = false;
+        let fetchPromise = null;
+        let syncHideTimer = null;
+        const MAX_PDF_MB = 8;
+        const ADMIN_STORAGE_KEY = 'herhsin_admin_key';
 
-        window.onload = () => {
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAdminSession();
             fetchFleetData();
             updateClock();
             setInterval(updateClock, 1000);
-            checkAdminSession();
-        };
+
+            document.getElementById('login-pwd').addEventListener('keydown', e => {
+                if (e.key === 'Enter') handleLogin();
+            });
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') {
+                    toggleModal('login-modal', false);
+                    toggleModal('vehicle-modal', false);
+                }
+            });
+        });
 
         function hideError() {
             document.getElementById('error-banner').style.display = 'none';
@@ -425,34 +534,35 @@
             document.getElementById('error-message').textContent = msg;
         }
 
-        async function fetchFleetData() {
-            if (isFetching) return;
-            isFetching = true;
+        // 同一時間只跑一個讀取；重複點擊會共用同一個請求
+        function fetchFleetData() {
+            if (fetchPromise) return fetchPromise;
+            fetchPromise = doFetchFleet().finally(() => { fetchPromise = null; });
+            return fetchPromise;
+        }
+
+        async function refreshAfterWrite() {
+            if (fetchPromise) await fetchPromise;
+            return fetchFleetData();
+        }
+
+        async function doFetchFleet() {
+            const st = document.getElementById('sync-status');
+            clearTimeout(syncHideTimer);
             hideError();
-            document.getElementById('sync-status').style.display = 'inline';
-            document.getElementById('sync-status').textContent = "同步中...";
-            
+            st.style.display = 'inline';
+            st.textContent = "同步中...";
             try {
-                const resp = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'fetch' })
-                });
-
-                const data = await resp.json();
-                if (data && data.status === 'error') throw new Error(data.message);
-
+                const data = await callApi({ action: 'fetch' });
+                if (data && data.status === 'error') throw new Error(data.message || '未知錯誤');
                 fleetData = Array.isArray(data) ? data : [];
-                document.getElementById('sync-status').textContent = "已更新";
-                renderFleet();
+                st.textContent = "已更新";
             } catch (error) {
-                document.getElementById('sync-status').textContent = "同步失敗";
+                st.textContent = "同步失敗";
                 showError(error.message);
-                renderFleet();
             } finally {
-                isFetching = false;
-                setTimeout(() => { document.getElementById('sync-status').style.display = 'none'; }, 2000);
+                renderFleet();
+                syncHideTimer = setTimeout(() => { st.style.display = 'none'; }, 2000);
             }
         }
 
@@ -460,34 +570,42 @@
             e.preventDefault();
             if (!isAdmin) return;
 
+            const plateInput = document.getElementById('v-plate');
+            const plate = plateInput.value.trim().toUpperCase();
+            const start = document.getElementById('v-start').value || "";
+            const expiry = document.getElementById('v-expiry').value || "";
+            const isNew = !plateInput.readOnly;
+
+            if (!plate) { alert("請輸入車牌號碼"); return; }
+            if (start && expiry && start > expiry) { alert("起始日不可晚於到期日"); return; }
+            if (isNew && fleetData.some(v => String(v.plate).toUpperCase() === plate)) {
+                if (!confirm(`車牌 ${plate} 已存在，確定要覆蓋原有資料嗎？`)) return;
+            }
+
             const btn = document.getElementById('btn-save-vehicle');
             btn.disabled = true;
             btn.innerHTML = '<span class="loader"></span> 同步中...';
 
             const vehicle = {
                 action: 'save',
-                plate: document.getElementById('v-plate').value.toUpperCase(),
-                model: document.getElementById('v-model').value,
+                password: adminKey,
+                plate,
+                model: document.getElementById('v-model').value.trim(),
                 company: document.getElementById('v-company').value,
-                start: document.getElementById('v-start').value || "",
-                expiry: document.getElementById('v-expiry').value || "",
+                start,
+                expiry,
                 pdfData: currentFileBase64,
                 pdfName: currentFileName || "",
                 fileId: document.getElementById('v-fileId').value || ""
             };
 
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify(vehicle)
-                });
-                const res = await response.json();
+                const res = await callApi(vehicle, 90000);
                 if (res.status === 'success') {
                     toggleModal('vehicle-modal', false);
-                    await fetchFleetData();
+                    await refreshAfterWrite();
                 } else {
-                    throw new Error(res.message);
+                    throw new Error(res.message || '未知錯誤');
                 }
             } catch (err) {
                 alert("存儲失敗：" + err.message);
@@ -500,31 +618,35 @@
         async function deleteVehicle(index) {
             if (!isAdmin) return;
             const v = fleetData[index];
+            if (!v) return;
             if (!confirm(`確定要刪除車輛 ${v.plate} 嗎？`)) return;
 
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'delete', plate: v.plate, fileId: v.fileId || "" })
-                });
-                const res = await response.json();
-                if (res.status === 'success') await fetchFleetData();
-            } catch (err) { alert("刪除失敗"); }
+                const res = await callApi({ action: 'delete', password: adminKey, plate: v.plate, fileId: v.fileId || "" });
+                if (res.status === 'success') await refreshAfterWrite();
+                else throw new Error(res.message || '未知錯誤');
+            } catch (err) { alert("刪除失敗：" + err.message); }
         }
 
         function handleFileChange(input) {
             const file = input.files[0];
-            if (file && file.type === "application/pdf") {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentFileBase64 = e.target.result;
-                    currentFileName = file.name;
-                    document.getElementById('file-preview-strip').classList.remove('hidden');
-                    document.getElementById('selected-file-name').textContent = file.name;
-                };
-                reader.readAsDataURL(file);
+            if (!file) return;
+            const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+            if (!isPdf) { alert("請選擇 PDF 檔案"); input.value = ""; return; }
+            if (file.size > MAX_PDF_MB * 1024 * 1024) {
+                alert(`檔案過大，請上傳 ${MAX_PDF_MB} MB 以內的 PDF`);
+                input.value = "";
+                return;
             }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentFileBase64 = e.target.result;
+                currentFileName = file.name;
+                document.getElementById('file-preview-strip').classList.remove('hidden');
+                document.getElementById('selected-file-name').textContent = file.name;
+            };
+            reader.onerror = () => alert("檔案讀取失敗，請重新選擇");
+            reader.readAsDataURL(file);
         }
 
         function clearFileSelection() {
@@ -535,30 +657,30 @@
         }
 
         async function handleLogin() {
-            const pwd = document.getElementById('login-pwd').value;
+            const input = document.getElementById('login-pwd');
+            const pwd = input.value;
+            if (!pwd) return;
             const btn = document.getElementById('btn-login-submit');
             btn.disabled = true;
 
             try {
-                const response = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: JSON.stringify({ action: 'login', password: pwd })
-                });
-                const res = await response.json();
+                const res = await callApi({ action: 'login', password: pwd });
                 if (res.status === 'success') {
                     isAdmin = true;
-                    sessionStorage.setItem('herhsin_admin', 'true');
+                    adminKey = pwd;
+                    try { sessionStorage.setItem(ADMIN_STORAGE_KEY, pwd); } catch (_) {}
+                    input.value = '';
                     applyAdminUI();
                     toggleModal('login-modal', false);
                     renderFleet();
                 } else { alert("金鑰錯誤"); }
-            } catch (err) { alert("驗證失敗"); } finally { btn.disabled = false; }
+            } catch (err) { alert("驗證失敗：" + err.message); } finally { btn.disabled = false; }
         }
 
         function logout() {
             isAdmin = false;
-            sessionStorage.removeItem('herhsin_admin');
+            adminKey = '';
+            try { sessionStorage.removeItem(ADMIN_STORAGE_KEY); } catch (_) {}
             applyAdminUI();
             renderFleet();
         }
@@ -568,8 +690,11 @@
         }
 
         function checkAdminSession() {
-            if (sessionStorage.getItem('herhsin_admin') === 'true') {
+            let key = null;
+            try { key = sessionStorage.getItem(ADMIN_STORAGE_KEY); } catch (_) {}
+            if (key) {
                 isAdmin = true;
+                adminKey = key;
                 applyAdminUI();
             }
         }
@@ -577,13 +702,23 @@
         function showPage(pageId) {
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
-            document.getElementById('page-title-text').textContent = pageId === 'dashboard' ? '車輛總覽' : '保單管理';
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(pageId)));
+            const titles = {
+                dashboard: ['車輛總覽', 'Fleet Overview'],
+                plans: ['保單管理', 'Policy Vault']
+            };
+            const [zh, en] = titles[pageId] || titles.dashboard;
+            document.getElementById('page-title-text').textContent = zh;
+            document.getElementById('page-title-sub').textContent = en;
+            const box = document.getElementById('page-title-box');
+            box.classList.remove('switching');
+            void box.offsetWidth; // 重新觸發切換動畫
+            box.classList.add('switching');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.getAttribute('onclick').includes(`'${pageId}'`)));
         }
 
         function toggleModal(id, show) {
             const modal = document.getElementById(id);
-            if(show) modal.classList.add('active');
+            if (show) modal.classList.add('active');
             else modal.classList.remove('active');
         }
 
@@ -591,6 +726,7 @@
             if (!isAdmin) return;
             document.getElementById('modal-title').textContent = "雲端資產註冊";
             document.getElementById('vehicle-form').reset();
+            document.getElementById('v-index').value = "";
             document.getElementById('v-plate').readOnly = false;
             document.getElementById('v-fileId').value = "";
             clearFileSelection();
@@ -600,17 +736,22 @@
         function openEditModal(index) {
             if (!isAdmin) return;
             const v = fleetData[index];
+            if (!v) return;
             document.getElementById('modal-title').textContent = "編輯車輛資料";
             document.getElementById('v-index').value = index;
             document.getElementById('v-plate').value = v.plate;
-            document.getElementById('v-plate').readOnly = true; 
+            document.getElementById('v-plate').readOnly = true;
             document.getElementById('v-model').value = v.model || "";
-            document.getElementById('v-company').value = v.company || "富邦產險";
-            
-            // 轉換日期格式以適配 input[type="date"]
-            document.getElementById('v-start').value = v.start ? formatToTaiwanString(v.start) : "";
-            document.getElementById('v-expiry').value = v.expiry ? formatToTaiwanString(v.expiry) : "";
-            
+
+            // 若資料庫中的保險公司不在下拉選單內，補上該選項，避免存檔時變成空白
+            const sel = document.getElementById('v-company');
+            const company = v.company || "富邦產險";
+            if (![...sel.options].some(o => o.value === company)) sel.add(new Option(company, company));
+            sel.value = company;
+
+            document.getElementById('v-start').value = toTaiwanYMD(v.start);
+            document.getElementById('v-expiry').value = toTaiwanYMD(v.expiry);
+
             document.getElementById('v-fileId').value = v.fileId || "";
             clearFileSelection();
             toggleModal('vehicle-modal', true);
@@ -621,42 +762,41 @@
             const grid = document.getElementById('plate-grid');
             list.innerHTML = '';
             grid.innerHTML = '';
-            
+
             let warningCount = 0, missingCount = 0;
-            const now = getTaiwanDate(new Date());
-            const thirtyDays = new Date(now);
-            thirtyDays.setDate(now.getDate() + 30);
+            const today = toTaiwanYMD(new Date());
+            const warnLimit = addDaysYMD(today, 30);
 
             fleetData.forEach((v, i) => {
                 let statusClass = 'status-ok', statusText = '期限內';
-                
-                // 確保讀取 v.start 欄位並格式化顯示
-                const displayStart = v.start ? formatToTaiwanString(v.start) : '---';
-                const displayExpiry = v.expiry ? formatToTaiwanString(v.expiry) : '---';
 
-                if (!v.expiry) { 
-                    statusClass = 'status-none'; statusText = '待補齊'; missingCount++; 
-                } else {
-                    const expDate = getTaiwanDate(v.expiry);
-                    if (expDate && expDate < now) { 
-                        statusClass = 'status-none'; statusText = '已過期'; missingCount++; 
-                    } else if (expDate && expDate < thirtyDays) { 
-                        statusClass = 'status-warning'; statusText = '即將到期'; warningCount++; 
-                    }
+                const startYMD = toTaiwanYMD(v.start);
+                const expiryYMD = toTaiwanYMD(v.expiry);
+                const displayStart = startYMD || '---';
+                const displayExpiry = expiryYMD || '---';
+
+                if (!expiryYMD) {
+                    statusClass = 'status-none'; statusText = '待補齊'; missingCount++;
+                } else if (expiryYMD < today) {
+                    statusClass = 'status-none'; statusText = '已過期'; missingCount++;
+                } else if (expiryYMD <= warnLimit) {
+                    statusClass = 'status-warning'; statusText = '即將到期'; warningCount++;
                 }
+
+                const plate = escapeHtml(v.plate);
 
                 // 總覽表格列
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-white/5 transition border-b border-white/5";
-                
-                const actionBtn = isAdmin 
+
+                const actionBtn = isAdmin
                     ? `<button onclick="openEditModal(${i})" class="px-3 py-1 border border-cyan-500/50 text-cyan-400 text-xs hover:bg-cyan-500 hover:text-black transition rounded">編輯</button>`
-                    : `<button onclick="openPdf('${v.fileId || ""}')" class="px-3 py-1 border border-gray-600 text-gray-400 text-xs hover:border-cyan-400 hover:text-cyan-400 transition rounded">檢視</button>`;
+                    : `<button onclick="openPdf(fleetData[${i}].fileId)" class="px-3 py-1 border border-gray-600 text-gray-400 text-xs hover:border-cyan-400 hover:text-cyan-400 transition rounded">檢視</button>`;
 
                 tr.innerHTML = `
-                    <td class="p-4 tech-font font-bold text-cyan-400">${v.plate}</td>
-                    <td class="p-4 text-gray-400 text-base">${v.model || '---'}</td>
-                    <td class="p-4 text-base text-white/80">${v.company || '---'}</td>
+                    <td class="p-4 tech-font font-bold text-cyan-400">${plate}</td>
+                    <td class="p-4 text-gray-400 text-base">${escapeHtml(v.model) || '---'}</td>
+                    <td class="p-4 text-base text-white/80">${escapeHtml(v.company) || '---'}</td>
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
                     <td class="p-4 text-base opacity-70">${displayStart}</td>
                     <td class="p-4 text-base opacity-70">${displayExpiry}</td>
@@ -668,20 +808,20 @@
                 // 保單管理卡片
                 const card = document.createElement('div');
                 card.className = "glass-panel p-5 hud-border flex flex-col items-center group relative overflow-hidden";
-                
+
                 const pdfAvailable = !!v.fileId;
-                const viewBtnClass = pdfAvailable 
-                    ? "bg-cyan-500 text-black hover:bg-white" 
+                const viewBtnClass = pdfAvailable
+                    ? "bg-cyan-500 text-black hover:bg-white"
                     : "bg-white/5 text-gray-700 border border-white/5 cursor-not-allowed";
 
                 card.innerHTML = `
                     <div class="w-16 h-20 bg-gradient-to-br ${pdfAvailable ? 'from-cyan-500/20' : 'from-gray-900'} to-transparent border border-white/10 rounded-lg flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 ${pdfAvailable ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
-                    <p class="tech-font text-xl font-black text-white mb-1">${v.plate}</p>
-                    <p class="text-[10px] text-gray-500 uppercase mb-4">${v.company || '未知公司'}</p>
+                    <p class="tech-font text-xl font-black text-white mb-1">${plate}</p>
+                    <p class="text-[10px] text-gray-500 uppercase mb-4">${escapeHtml(v.company) || '未知公司'}</p>
                     <div class="w-full space-y-2">
-                        <button onclick="openPdf('${v.fileId || ""}')" class="w-full py-2 text-[10px] font-bold uppercase transition ${viewBtnClass}">
+                        <button onclick="openPdf(fleetData[${i}].fileId)" class="w-full py-2 text-[10px] font-bold uppercase transition ${viewBtnClass}">
                             ${pdfAvailable ? '檢視電子保單' : '保單尚未上傳'}
                         </button>
                         <div class="flex justify-between items-center px-1">
@@ -692,14 +832,14 @@
                 `;
                 grid.appendChild(card);
             });
-            
+
             document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
             document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
             document.getElementById('stat-missing').textContent = missingCount.toString().padStart(2, '0');
         }
 
         function updateClock() {
-            const time = new Date().toLocaleTimeString('zh-TW', {hour12: false, timeZone: 'Asia/Taipei'});
+            const time = new Date().toLocaleTimeString('zh-TW', { hourCycle: 'h23', timeZone: 'Asia/Taipei' });
             const clockEl = document.getElementById('current-time');
             if (clockEl) clockEl.textContent = time;
         }
