@@ -224,6 +224,103 @@
             font-size: 12px;
             border-radius: 4px;
         }
+
+        /* ===================== 主題升級 ===================== */
+        :root {
+            --neon-blue: #19e6ff;
+            --neon-green: #4dffa6;
+            --deep-black: #05070d;
+            --amber: #ffc247;
+            --danger: #ff5d73;
+            --line: rgba(120, 200, 255, 0.14);
+        }
+        body { background-image: none; }
+        body::before {
+            content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+            background-image:
+                radial-gradient(900px 520px at 85% -10%, rgba(25, 230, 255, 0.16), transparent 60%),
+                radial-gradient(700px 500px at -10% 110%, rgba(77, 255, 166, 0.07), transparent 60%),
+                linear-gradient(rgba(120, 200, 255, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(120, 200, 255, 0.035) 1px, transparent 1px);
+            background-size: auto, auto, 44px 44px, 44px 44px;
+        }
+        * { scrollbar-width: thin; scrollbar-color: rgba(25, 230, 255, 0.35) transparent; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(25, 230, 255, 0.28); border-radius: 8px; }
+        :focus-visible { outline: 2px solid var(--neon-blue); outline-offset: 2px; }
+
+        .glass-panel {
+            background: linear-gradient(180deg, rgba(18, 26, 44, 0.9), rgba(10, 14, 24, 0.93));
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        aside.glass-panel {
+            border-radius: 0;
+            background: linear-gradient(180deg, rgba(10, 16, 30, 0.96), rgba(6, 9, 16, 0.98));
+        }
+        .hud-border::before { top: 8px; left: 8px; width: 12px; height: 12px; opacity: 0.7; border-color: var(--neon-blue); }
+        .hud-border::after { bottom: 8px; right: 8px; width: 12px; height: 12px; opacity: 0.7; border-color: var(--neon-blue); }
+
+        /* 側邊導航 */
+        nav .nav-btn { width: auto; margin: 4px 12px; border-radius: 10px; border-left: 0; }
+        nav .nav-btn.active {
+            background: linear-gradient(90deg, rgba(25, 230, 255, 0.18), rgba(25, 230, 255, 0.02));
+            box-shadow: inset 3px 0 0 var(--neon-blue), 0 0 24px -8px rgba(25, 230, 255, 0.5);
+        }
+
+        /* 統計卡片：各有專屬色 */
+        #page-dashboard > .grid > .glass-panel { --accent: var(--neon-blue); box-shadow: inset 0 2px 0 var(--accent), 0 10px 30px rgba(0, 0, 0, 0.45); }
+        #page-dashboard > .grid > .glass-panel:nth-child(2) { --accent: var(--amber); }
+        #page-dashboard > .grid > .glass-panel:nth-child(3) { --accent: var(--danger); }
+        #page-dashboard > .grid h3 { font-size: 3.4rem; line-height: 1; margin-top: 6px; text-shadow: 0 0 26px var(--accent); }
+
+        /* 表格 */
+        #page-dashboard thead { background: rgba(25, 230, 255, 0.05); }
+        #page-dashboard thead th { color: #8fb4c9; font-weight: 500; font-size: 0.85rem; letter-spacing: 0.12em; }
+        #dashboard-fleet-list tr { transition: background 0.2s; }
+        #dashboard-fleet-list tr:hover { background: linear-gradient(90deg, rgba(25, 230, 255, 0.08), transparent); }
+
+        /* 車牌標籤：本系統的視覺主角 */
+        .plate-chip {
+            display: inline-block; font-family: 'Orbitron', sans-serif; font-weight: 700;
+            letter-spacing: 0.14em; padding: 4px 12px; border-radius: 6px; color: #eaffff;
+            background: linear-gradient(180deg, #0f1b2d, #0a1220);
+            border: 1px solid rgba(25, 230, 255, 0.45);
+            box-shadow: inset 0 0 0 2px rgba(5, 7, 13, 0.9), inset 0 0 0 3px rgba(25, 230, 255, 0.18), 0 0 14px -4px rgba(25, 230, 255, 0.5);
+        }
+        .plate-chip-lg { font-size: 1.25rem; padding: 6px 16px; }
+
+        /* 狀態標籤 */
+        .status-tag { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; }
+        .status-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+        .status-ok { background: rgba(77, 255, 166, 0.1); color: var(--neon-green); border-color: rgba(77, 255, 166, 0.5); }
+        .status-warning { background: rgba(255, 194, 71, 0.1); color: var(--amber); border-color: rgba(255, 194, 71, 0.5); }
+        .status-none { background: rgba(255, 93, 115, 0.1); color: var(--danger); border-color: rgba(255, 93, 115, 0.5); }
+
+        /* 按鈕（原本黑字疊在深色底，對比不足） */
+        button.btn-action {
+            border-radius: 10px; color: #d9fbff; letter-spacing: 0.06em;
+            background: linear-gradient(135deg, rgba(25, 230, 255, 0.28), rgba(25, 230, 255, 0.06));
+            border: 1px solid rgba(25, 230, 255, 0.45);
+        }
+        button.btn-action:hover:not(:disabled) { background: var(--neon-blue); color: #021016; box-shadow: 0 0 22px rgba(25, 230, 255, 0.55); }
+
+        /* 保單卡片 */
+        #plate-grid > .glass-panel { transition: border-color 0.25s, box-shadow 0.25s; }
+        #plate-grid > .glass-panel:hover { border-color: rgba(25, 230, 255, 0.45); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 24px -8px rgba(25, 230, 255, 0.5); }
+
+        /* 視窗與表單 */
+        .modal { background: rgba(2, 4, 10, 0.78); backdrop-filter: blur(4px); }
+        .modal.active .glass-panel { animation: pop 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2); }
+        @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
+        .modal input, .modal select { border-radius: 8px; background: rgba(2, 6, 14, 0.7); border-color: rgba(120, 200, 255, 0.18); transition: border-color 0.2s, box-shadow 0.2s; }
+        .modal input:focus, .modal select:focus { border-color: var(--neon-blue); box-shadow: 0 0 0 3px rgba(25, 230, 255, 0.16); outline: none; }
+        .modal select option { background: #0b1220; }
+        .file-upload-area { border-radius: 10px; }
+
+        .empty-state { padding: 56px 16px; text-align: center; color: #7f93a6; font-size: 0.95rem; }
+        @media (prefers-reduced-motion: reduce) { .modal.active .glass-panel { animation: none; } }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -367,7 +464,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
                     註冊新車輛
                 </button>
-                <div class="flex items-center bg-black/40 border border-white/5 overflow-hidden">
+                <div class="flex items-center bg-black/40 border border-white/5 overflow-hidden rounded-lg">
                     <div class="neon-guardian text-[10px] font-black tech-font italic border-r border-white/10">極速守護</div>
                     <div id="current-time" class="tech-font text-xs text-cyan-500 px-4 py-2">00:00:00</div>
                 </div>
@@ -794,7 +891,7 @@
                     : `<button onclick="openPdf(fleetData[${i}].fileId)" class="px-3 py-1 border border-gray-600 text-gray-400 text-xs hover:border-cyan-400 hover:text-cyan-400 transition rounded">檢視</button>`;
 
                 tr.innerHTML = `
-                    <td class="p-4 tech-font font-bold text-cyan-400">${plate}</td>
+                    <td class="p-4"><span class="plate-chip">${plate}</span></td>
                     <td class="p-4 text-gray-400 text-base">${escapeHtml(v.model) || '---'}</td>
                     <td class="p-4 text-base text-white/80">${escapeHtml(v.company) || '---'}</td>
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
@@ -818,7 +915,7 @@
                     <div class="w-16 h-20 bg-gradient-to-br ${pdfAvailable ? 'from-cyan-500/20' : 'from-gray-900'} to-transparent border border-white/10 rounded-lg flex items-center justify-center mb-4">
                         <svg class="w-8 h-8 ${pdfAvailable ? 'text-cyan-400' : 'text-gray-800'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
-                    <p class="tech-font text-xl font-black text-white mb-1">${plate}</p>
+                    <span class="plate-chip plate-chip-lg mb-2">${plate}</span>
                     <p class="text-[10px] text-gray-500 uppercase mb-4">${escapeHtml(v.company) || '未知公司'}</p>
                     <div class="w-full space-y-2">
                         <button onclick="openPdf(fleetData[${i}].fileId)" class="w-full py-2 text-[10px] font-bold uppercase transition ${viewBtnClass}">
@@ -826,12 +923,17 @@
                         </button>
                         <div class="flex justify-between items-center px-1">
                             <span class="text-[9px] text-gray-600 tech-font">到期: ${displayExpiry}</span>
-                            <span class="status-tag ${statusClass}" style="padding:1px 4px; font-size:8px;">${statusText}</span>
+                            <span class="status-tag ${statusClass}">${statusText}</span>
                         </div>
                     </div>
                 `;
                 grid.appendChild(card);
             });
+
+            if (!fleetData.length) {
+                list.innerHTML = '<tr><td colspan="8" class="empty-state">目前沒有車輛資料。登入後按「註冊新車輛」即可新增。</td></tr>';
+                grid.innerHTML = '<div class="empty-state glass-panel col-span-full">尚無已存檔的電子保單。</div>';
+            }
 
             document.getElementById('stat-total').textContent = fleetData.length.toString().padStart(2, '0');
             document.getElementById('stat-warning').textContent = warningCount.toString().padStart(2, '0');
