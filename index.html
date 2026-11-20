@@ -522,6 +522,7 @@
                             <tr>
                                 <th class="p-4 text-base">車牌號碼</th>
                                 <th class="p-4 text-base">車型資訊</th>
+                                <th class="p-4 text-base">業務員</th>
                                 <th class="p-4 text-base">保險公司</th>
                                 <th class="p-4 text-base">保險狀態</th>
                                 <th class="p-4 text-base">起始日期</th>
@@ -550,7 +551,7 @@
             <div class="glass-panel hud-border overflow-x-auto">
                 <table class="w-full text-left">
                     <thead><tr>
-                        <th>車牌</th><th>車型</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>狀態</th><th>備註</th>
+                        <th>車牌</th><th>車型</th><th>業務員</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>狀態</th><th>備註</th>
                         <th class="admin-only-cell text-center">編輯</th>
                     </tr></thead>
                     <tbody id="inspect-list"></tbody>
@@ -623,9 +624,15 @@
                         </select>
                     </div>
                 </div>
-                <div>
-                    <label class="block text-[15px] text-gray-500 mb-1">車型資訊</label>
-                    <input type="text" id="v-model" required class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[15px] text-gray-500 mb-1">車型資訊</label>
+                        <input type="text" id="v-model" required class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                    </div>
+                    <div>
+                        <label class="block text-[15px] text-gray-500 mb-1">業務員</label>
+                        <input type="text" id="v-sales" maxlength="30" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none text-white">
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="block text-[15px] text-gray-500 mb-1">起始日</label><input type="date" id="v-start" class="w-full bg-black/50 border border-white/10 p-3 text-sm focus:border-cyan-500 outline-none tech-font text-white"></div>
@@ -748,6 +755,7 @@
                 password: adminKey,
                 plate,
                 model: document.getElementById('v-model').value.trim(),
+                salesperson: document.getElementById('v-sales').value.trim(),
                 company: document.getElementById('v-company').value,
                 start,
                 expiry,
@@ -900,6 +908,7 @@
             document.getElementById('v-plate').value = v.plate;
             document.getElementById('v-plate').readOnly = true;
             document.getElementById('v-model').value = v.model || "";
+            document.getElementById('v-sales').value = v.salesperson || "";
 
             // 若資料庫中的保險公司不在下拉選單內，補上該選項，避免存檔時變成空白
             const sel = document.getElementById('v-company');
@@ -954,6 +963,7 @@
                 tr.innerHTML = `
                     <td class="p-4"><span class="plate-chip">${plate}</span></td>
                     <td class="p-4 text-gray-400 text-base">${escapeHtml(v.model) || '---'}</td>
+                    <td class="p-4 text-base">${escapeHtml(v.salesperson) || '---'}</td>
                     <td class="p-4 text-base text-white/80">${escapeHtml(v.company) || '---'}</td>
                     <td class="p-4"><span class="status-tag ${statusClass}">${statusText}</span></td>
                     <td class="p-4 text-base opacity-70">${displayStart}</td>
@@ -992,7 +1002,7 @@
             });
 
             if (!fleetData.length) {
-                list.innerHTML = '<tr><td colspan="8" class="empty-state">目前沒有車輛資料。登入後按「註冊新車輛」即可新增。</td></tr>';
+                list.innerHTML = '<tr><td colspan="9" class="empty-state">目前沒有車輛資料。登入後按「註冊新車輛」即可新增。</td></tr>';
                 grid.innerHTML = '<div class="empty-state glass-panel col-span-full">尚無已存檔的電子保單。</div>';
             }
 
@@ -1044,6 +1054,7 @@
                 <tr>
                     <td class="p-4"><span class="plate-chip">${escapeHtml(o.v.plate)}</span></td>
                     <td class="p-4 text-gray-400">${escapeHtml(o.v.model) || '---'}</td>
+                    <td class="p-4">${escapeHtml(o.v.salesperson) || '---'}</td>
                     <td class="p-4 opacity-70">${toTaiwanYMD(o.v.lastInspect) || '---'}</td>
                     <td class="p-4 opacity-70">${o.next || '---'}</td>
                     <td class="p-4 tech-font">${o.days}</td>
@@ -1051,7 +1062,7 @@
                     <td class="p-4 text-gray-400 text-sm">${escapeHtml(o.v.inspectNote) || ''}</td>
                     <td class="p-4 text-center admin-only-cell"><button onclick="openInspectModal(${o.i})" class="px-3 py-1 border border-cyan-500/50 text-cyan-400 text-xs hover:bg-cyan-500 hover:text-black transition rounded">記錄檢驗</button></td>
                 </tr>`).join('')
-                : '<tr><td colspan="8" class="empty-state">目前沒有車輛資料，請先到車輛總覽新增車輛。</td></tr>';
+                : '<tr><td colspan="9" class="empty-state">目前沒有車輛資料，請先到車輛總覽新增車輛。</td></tr>';
 
             document.getElementById('inspect-summary').innerHTML =
                 `<span class="status-tag status-none">已逾期 ${counts[0]}</span>` +
