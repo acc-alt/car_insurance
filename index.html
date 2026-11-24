@@ -1099,15 +1099,16 @@
                     else if (next <= warnLimit) { rank = 1; cls = 'status-warning'; text = '即將到期'; days = diff === 0 ? '今天到期' : `剩 ${diff} 天`; }
                     else { rank = 2; cls = 'status-ok'; text = '正常'; days = `剩 ${diff} 天`; }
                 }
-                // 驗車狀態：車險不足 30 天 → 不可驗車；上次驗車未滿 10 個月 → 尚不須驗車；其餘 → 可驗車
+                // 驗車狀態：車險不足 30 天 → 不可驗車；下次檢驗日前後一個月內 → 可驗車；其餘 → 尚不須驗車
                 const insExpiry = toTaiwanYMD(v.expiry);
-                const lastDone = toTaiwanYMD(v.lastInspect);
                 const insDays = insExpiry ? dayDiff(today, insExpiry) : null;
-                let can = { cls: 'status-ok', text: '可驗車', why: '' };
+                let can;
                 if (insDays !== null && insDays < 30) {
                     can = { cls: 'status-none', text: '不可驗車', why: insDays < 0 ? '車險已過期，請續保後再驗車' : `車險剩 ${insDays} 天到期（需 30 天以上），請續保後再驗車` };
-                } else if (lastDone && today < addMonthsYMD(lastDone, 10)) {
-                    can = { cls: 'status-pending', text: '尚不須驗車', why: '距離最近一次驗車未滿 10 個月' };
+                } else if (next && today >= addMonthsYMD(next, -1) && today <= addMonthsYMD(next, 1)) {
+                    can = { cls: 'status-ok', text: '可驗車', why: '已在下次檢驗日前後一個月內' };
+                } else {
+                    can = { cls: 'status-pending', text: '尚不須驗車', why: !next ? '尚未記錄下次檢驗日' : (today < next ? '尚未進入下次檢驗日前一個月' : '已超過下次檢驗日後一個月') };
                 }
                 counts[rank]++;
                 if (rank < 2) urgent.push(`${escapeHtml(v.plate)}（${days}）`);
