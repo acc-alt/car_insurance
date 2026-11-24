@@ -573,7 +573,7 @@
             <div class="glass-panel hud-border overflow-x-auto">
                 <table class="w-full text-left">
                     <thead><tr>
-                        <th>車牌</th><th>車型</th><th>業務員</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>狀態</th><th>備註</th>
+                        <th>車牌</th><th>車型</th><th>業務員</th><th>最近檢驗</th><th>下次檢驗</th><th>剩餘</th><th>效期</th><th>狀態</th><th>備註</th>
                         <th class="admin-only-cell text-center">編輯</th>
                     </tr></thead>
                     <tbody id="inspect-list"></tbody>
@@ -1099,9 +1099,19 @@
                     else if (next <= warnLimit) { rank = 1; cls = 'status-warning'; text = '即將到期'; days = diff === 0 ? '今天到期' : `剩 ${diff} 天`; }
                     else { rank = 2; cls = 'status-ok'; text = '正常'; days = `剩 ${diff} 天`; }
                 }
+                // 驗車狀態：車險不足 30 天 → 不可驗車；上次驗車未滿 10 個月 → 尚不須驗車；其餘 → 可驗車
+                const insExpiry = toTaiwanYMD(v.expiry);
+                const lastDone = toTaiwanYMD(v.lastInspect);
+                const insDays = insExpiry ? dayDiff(today, insExpiry) : null;
+                let can = { cls: 'status-ok', text: '可驗車', why: '' };
+                if (insDays !== null && insDays < 30) {
+                    can = { cls: 'status-none', text: '不可驗車', why: insDays < 0 ? '車險已過期，請續保後再驗車' : `車險剩 ${insDays} 天到期（需 30 天以上），請續保後再驗車` };
+                } else if (lastDone && today < addMonthsYMD(lastDone, 10)) {
+                    can = { cls: 'status-pending', text: '尚不須驗車', why: '距離最近一次驗車未滿 10 個月' };
+                }
                 counts[rank]++;
                 if (rank < 2) urgent.push(`${escapeHtml(v.plate)}（${days}）`);
-                return { v, i, next, rank, cls, text, days };
+                return { v, i, next, rank, cls, text, days, can };
             }).sort((a, b) => a.rank - b.rank || a.next.localeCompare(b.next));
 
             list.innerHTML = items.length ? items.map(o => `
@@ -1113,10 +1123,11 @@
                     <td class="p-4 opacity-70">${o.next || '---'}</td>
                     <td class="p-4 tech-font">${o.days}</td>
                     <td class="p-4"><span class="status-tag ${o.cls}">${o.text}</span></td>
+                    <td class="p-4"><span class="status-tag ${o.can.cls}" title="${o.can.why}">${o.can.text}</span></td>
                     <td class="p-4 text-gray-400 text-sm">${escapeHtml(o.v.inspectNote) || ''}</td>
                     <td class="p-4 text-center admin-only-cell"><button onclick="openInspectModal(${o.i})" class="px-3 py-1 border border-cyan-500/50 text-cyan-400 text-xs hover:bg-cyan-500 hover:text-black transition rounded">記錄檢驗</button></td>
                 </tr>`).join('')
-                : '<tr><td colspan="9" class="empty-state">目前沒有車輛資料，請先到車輛總覽新增車輛。</td></tr>';
+                : '<tr><td colspan="10" class="empty-state">目前沒有車輛資料，請先到車輛總覽新增車輛。</td></tr>';
 
             document.getElementById('inspect-summary').innerHTML =
                 `<span class="status-tag status-none">已逾期 ${counts[0]}</span>` +
