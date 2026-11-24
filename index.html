@@ -344,6 +344,12 @@
         .inspect-notes li { counter-increment: note; position: relative; padding-left: 34px; color: #ffffff; line-height: 1.7; font-size: 0.95rem; }
         .inspect-notes li::before { content: counter(note); position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 194, 71, 0.15); border: 1px solid rgba(255, 194, 71, 0.6); color: var(--amber); font-size: 12px; font-weight: 700; text-align: center; line-height: 20px; }
         .inspect-notes strong { color: var(--amber); font-weight: 500; }
+        /* 罰則視窗 */
+        .penalty-body h5 { color: var(--neon-blue); font-weight: 700; font-size: 1.05rem; margin: 0 0 6px; }
+        .penalty-body p { color: #ffffff; margin: 8px 0 0; }
+        .penalty-body a { color: var(--neon-blue); text-decoration: underline; text-underline-offset: 3px; }
+        .penalty-body ol { list-style: decimal; padding-left: 1.5rem; margin: 8px 0 18px; color: #ffffff; line-height: 1.8; font-size: 0.95rem; }
+        .penalty-body section + section { border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 20px; margin-top: 4px; }
     </style>
 </head>
 <body class="flex min-h-screen">
@@ -561,6 +567,7 @@
                     <li><strong>定檢期限：</strong>車輛得於應定檢日前後一個月進行定檢，但是若逾此寬限期，將有相關罰則，請多加留意。</li>
                     <li><strong>強制險：</strong>強制險有效期需在 30 天以上才可以驗車，若保險即將於一個月內到期而尚未續保，則不能驗車，請於續保後再驗車。</li>
                 </ol>
+                <button type="button" onclick="toggleModal('penalty-modal', true)" class="btn-action mt-4 px-4 py-2 text-xs font-bold">查看相關罰則</button>
             </div>
             <div class="glass-panel hud-border overflow-x-auto">
                 <table class="w-full text-left">
@@ -591,6 +598,37 @@
     </div>
 
     <!-- 編輯/註冊視窗 -->
+    <div id="penalty-modal" class="modal" onclick="if (event.target === this) toggleModal('penalty-modal', false)">
+        <div class="glass-panel w-full max-w-2xl p-8 hud-border m-4 overflow-y-auto max-h-[90vh]">
+            <h3 class="text-lg font-bold mb-6 text-cyan-400 tech-font">相關罰則</h3>
+            <div class="penalty-body">
+                <section>
+                    <h5>汽車／大型重型機車定期檢驗</h5>
+                    <p><a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=K0040012" target="_blank" rel="noopener noreferrer">道路交通管理處罰條例</a>第17條</p>
+                    <ol>
+                        <li>汽車不依限期參加定期檢驗或臨時檢驗者，處汽車所有人新臺幣九百元以上一千八百元以下罰鍰；逾期一個月以上者並吊扣其牌照，至檢驗合格後發還，逾期六個月以上者，註銷其牌照。</li>
+                        <li>經檢驗不合格之汽車，於一個月內仍未修復並申請覆驗，或覆驗仍不合格者，吊扣其牌照。</li>
+                    </ol>
+                </section>
+                <section>
+                    <h5>機車排氣定期檢驗</h5>
+                    <p><a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=O0020001" target="_blank" rel="noopener noreferrer">空氣污染防制法</a>第44條</p>
+                    <ol>
+                        <li>汽車應實施排放空氣污染物定期檢驗，檢驗不符合第三十六條第二項所定排放標準之車輛，應於檢驗日起一個月內修復，並申請複驗。</li>
+                        <li>前項檢驗實施之對象、區域、頻率及期限，由中央主管機關公告之。</li>
+                        <li>汽車排放空氣污染物檢驗站設置之條件、設施、電腦軟體、檢驗人員資格、檢驗站之設置認可、撤銷、廢止、查核、停止檢驗及其他應遵行事項之辦法，由中央主管機關定之。</li>
+                    </ol>
+                    <p><a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=O0020001" target="_blank" rel="noopener noreferrer">空氣污染防制法</a>第80條：</p>
+                    <ol>
+                        <li>未依第四十四條第一項規定實施排放空氣污染物定期檢驗者，處汽車所有人新臺幣五百元以上一萬五千元以下罰鍰。</li>
+                        <li>經定期檢驗不符合排放標準之車輛，未於檢驗日起一個月內修復並複驗，或於期限屆滿後之複驗不合格者，處新臺幣一千五百元以上三萬元以下罰鍰。</li>
+                        <li>逾應檢驗日起六個月仍未實施定期檢驗、未依規定申請複驗或複驗仍不合格者，經直轄市、縣（巿）主管機關通知限期改善，屆期未完成改善者，處新臺幣三千元以上六萬元以下罰鍰；經直轄市、縣（巿）主管機關再通知限期改善，屆期仍未完成改善者，得移請公路監理機關註銷其牌照。</li>
+                    </ol>
+                </section>
+            </div>
+            <button type="button" onclick="toggleModal('penalty-modal', false)" class="btn-action w-full py-3 text-sm font-bold mt-2">關閉</button>
+        </div>
+    </div>
     <div id="inspect-modal" class="modal">
         <div class="glass-panel w-full max-w-md p-8 hud-border m-4 overflow-y-auto max-h-[90vh]">
             <h3 class="text-lg font-bold mb-3 text-cyan-400 tech-font">記錄車輛定檢</h3>
@@ -699,6 +737,7 @@
                     toggleModal('login-modal', false);
                     toggleModal('vehicle-modal', false);
                     toggleModal('inspect-modal', false);
+                    toggleModal('penalty-modal', false);
                 }
             });
         });
